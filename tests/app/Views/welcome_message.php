@@ -53,6 +53,26 @@ $debug = FALSE;
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/lazysizes/5.3.0/lazysizes.min.js" integrity="sha512-JrL1wXR0TeToerkl6TPDUa9132S3PB1UeNpZRHmCe6TxS43PFJUcEYUhjJb/i63rSd+uRvpzlcGOtvC/rDQcDg==" crossorigin="anonymous"></script>
 </head>
 <body>
+	
+	<div class="container mb-3">
+		<h3>Flex Columns</h3>
+		<div class="card-deck">
+			<?php 
+			$map = [
+				'sm'=>2, // wrap every 2 cards on sm
+				'md'=>3, // wrap every 3 cards on md
+				'lg'=>2,
+				'xl'=>5,
+			];
+			for($i=1; $i<=6; $i++): ?>
+			<div class="card mb-3">
+				<h1><?= $i ?></h1>
+			</div>
+			<?= service('bootstrap')->flexColumn($i, $map); ?>
+			<?php endfor; ?>
+		</div>
+	</div>
+	<hr>
 	<div class="container mb-3">
 		<h3>Max Resolution: 1x</h3>
 		<?php foreach(['col', 'col-md-6 col-lg-4 col-xl-2'] as $cols): ?>
