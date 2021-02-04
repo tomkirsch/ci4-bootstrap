@@ -1,6 +1,6 @@
 # Bootstrap Library for CI4
 
-##Installation
+## Installation
 Add the requirement to `composer.json`:
 ```
     "require": {
@@ -12,9 +12,11 @@ Update: `composer install --no-dev --optimize-autoloader`
 
 If not using the dynamic image library, then you're done. For dynamic images, continue to install -
 
-Create the config file: `Config\Bootstrap.php` and set your preferences:
+Create the config file: `Config\Bootstrap.php` and set your preferences. You must extend `Tomkirsch/Bootstrap/BootstrapConfig`
 ```
-class BootstrapConfig extends BaseConfig{
+use Tomkirsch/Bootstrap/BootstrapConfig;
+
+class Bootstrap extends BootstrapConfig{
 	// return the file to be used
 	public function dynamicImageFileName(string $src, string $ext, int $width){
 		$file = $src.'.'.$ext;
