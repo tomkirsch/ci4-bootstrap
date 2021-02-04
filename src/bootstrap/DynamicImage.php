@@ -56,6 +56,7 @@ class DynamicImage{
 		$this->imgAttr = [];
 		$this->lqipAttr = [];
 		$this->lpiqIsOwnImg = NULL;
+		$this->el = $this->config->defaultElement ?? 'picture';
 		$this->isLazy = $this->config->defaultIsLazy ?? FALSE;
 		$this->hires = $this->config->defaultHires ?? static::HIRES_SOURCE;
 		$this->lqip = $this->config->defaultLqip ?? NULL;
@@ -271,14 +272,8 @@ class DynamicImage{
 		$out = '';
 		$imgAttr = $this->imgAttr;
 		$lqipAttr = $this->getLqipAttr($mediaDict); // set the 'src'
-		if($this->lpiqIsOwnImg){
-			$out .= '<img '.stringify_attributes($lqipAttr).'>'.$this->nl();
-			// it MUST be a lazyload
-			$width = $mediaDict[0] ?? min($this->config->containers());
-			$imgAttr['data-src'] = $this->destFileName($width);
-		}else{
-			$imgAttr = array_merge($lqipAttr, $imgAttr);
-		}
+		$imgAttr = array_merge($lqipAttr, $imgAttr);
+		
 		// lazyload
 		if($this->isLazy){
 			$imgAttr = $this->ensureAttr('class', 'lazyload', $imgAttr);
@@ -319,6 +314,7 @@ class DynamicImage{
 		$lqipAttr = $this->getLqipAttr($mediaDict); // set the 'src'
 		if($this->lpiqIsOwnImg){
 			$out .= '<img '.stringify_attributes($lqipAttr).'>'.$this->nl();
+			$imgAttr = $this->ensureAttr('alt', '', $imgAttr);
 		}else{
 			$imgAttr = array_merge($lqipAttr, $imgAttr);
 		}
@@ -333,7 +329,7 @@ class DynamicImage{
 		return $out;
 	}
 	
-	// set the src attribute of LQIP
+	// set the src attribute of LQIP. This could also be the base <img> element
 	protected function getLqipAttr(array $mediaDict):array{
 		$attr = $this->lqipAttr;
 		switch($this->lqip){
@@ -363,10 +359,10 @@ class DynamicImage{
 					$attr['src'] = $this->destFileName($width);
 				}
 		} // endswitch
+		// ensure we have 'alt'
+		$attr = $this->ensureAttr('alt', '', $attr);
 		return $attr;
 	}
-	
-	
 	
 	/*
 		Take an array of column classes (col-*) and make keys from the column number.
@@ -518,7 +514,7 @@ class DynamicImage{
 		}else if(!is_array($attr)){
 			throw new \Exception("Attributes must be passed as an associative array");
 		}
-		$sep = $attrName === 'style' ? ';' : ' ';
+		$sep = $attrName === 'style' ? ';' : ($attrName === 'class' ? ' ' : '');
 		if(isset($attr[$attrName])){
 			$attr[$attrName] .= $sep.$attrValue;
 		}else{

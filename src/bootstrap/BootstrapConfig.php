@@ -11,7 +11,10 @@ class BootstrapConfig extends BaseConfig{
 	}
 	
 	// newlines in output
-	public $prettyPrint = TRUE; 
+	public $prettyPrint = TRUE;
+	
+	// default element, 'img' or 'picture'
+	public $defaultElement = 'picture';
 	
 	// use lazyload by default
 	public $defaultIsLazy = FALSE;

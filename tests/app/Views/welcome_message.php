@@ -65,7 +65,7 @@ $debug = FALSE;
 					->cols($cols)
 					->debug($debug)
 					->hires(NULL)
-					->element('picture', [], ['class'=>'img-fluid'])
+					->element('picture', [], ['alt'=>'A cute kitten', 'class'=>'img-fluid'])
 					->render();
 				?>
 			</div>
@@ -83,7 +83,7 @@ $debug = FALSE;
 					->cols($cols)
 					->hires(2)
 					->lazy(TRUE)
-					->element('picture', [], ['class'=>'img-fluid'])
+					->element('picture', [], ['alt'=>'A cute kitten', 'class'=>'img-fluid'])
 					->render();
 				?>
 			</div>
@@ -100,7 +100,7 @@ $debug = FALSE;
 					->debug($debug)
 					->cols($cols)
 					->hires(800)
-					->element('picture', [], ['class'=>'img-fluid'])
+					->element('picture', [], ['alt'=>'A cute kitten', 'class'=>'img-fluid'])
 					->render();
 				?>
 			</div>
@@ -115,7 +115,7 @@ $debug = FALSE;
 				->cols('col-6', ['class'=>'wrapperClass'])
 				->ratio(NULL)
 				->lqip(100)
-				->element('picture', [], ['class'=>'img-fluid'])
+				->element('picture', [], ['alt'=>'A cute kitten', 'class'=>'img-fluid'])
 				->render();
 			?>
 			<?= service('bootstrap')
@@ -124,7 +124,7 @@ $debug = FALSE;
 				->cols('col-6', ['class'=>'wrapperClass'])
 				->ratio(NULL)
 				->lqip('#FF0000')
-				->element('picture', [], ['class'=>'img-fluid'])
+				->element('picture', [], ['alt'=>'A cute kitten', 'class'=>'img-fluid'])
 				->render();
 			?>
 		</div>
@@ -138,7 +138,7 @@ $debug = FALSE;
 					->ratio('ratiobox fadebox') // add fadebox class for css transition & positioning
 					->lazy(TRUE)
 					->lqip(100, [], TRUE) // lqip must be a separate <img> element
-					->element('img', [], ['class'=>'img-fluid']) // fade transition won't work for <picture>!
+					->element('img', ['alt'=>'A cute kitten', 'class'=>'img-fluid']) // fade transition won't work for <picture>!
 					->render();
 				?>
 			</div>
@@ -150,7 +150,7 @@ $debug = FALSE;
 					->ratio('ratiobox fadebox') // add fadebox class for css transition & positioning
 					->lazy(TRUE)
 					->lqip('#FF0000', [], TRUE) // lqip must be a separate <img> element
-					->element('img', ['class'=>'mypic'], ['class'=>'img-fluid']) // fade transition won't work for <picture>!
+					->element('img', ['alt'=>'A cute kitten', 'class'=>'img-fluid']) // fade transition won't work for <picture>!
 					->render();
 				?>
 			</div>
