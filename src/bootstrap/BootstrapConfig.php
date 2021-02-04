@@ -11,7 +11,7 @@ class BootstrapConfig extends BaseConfig{
 	}
 	
 	// newlines in output
-	public $prettyPrint = TRUE;
+	public $prettyPrint = FALSE;
 	
 	// default element, 'img' or 'picture'
 	public $defaultElement = 'picture';
@@ -29,7 +29,10 @@ class BootstrapConfig extends BaseConfig{
 	public $defaultRatioPaddingClass = 'ratiobox';
 	
 	// maximum supported resolution factor (2x, 3x, etc)
-	public $maxResolutionFactor = 4;
+	public $defaultMaxResolution = 4;
+	
+	// default resolution step to get from 1 to $maxResolutionFactor
+	public $defaultResolutionStep = 1;
 	
 	// number of columns in the grid
 	public $gridCols = 12;

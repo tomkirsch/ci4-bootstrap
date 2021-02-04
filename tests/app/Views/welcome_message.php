@@ -5,7 +5,7 @@ $debug = FALSE;
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
-	<title>Welcome to CodeIgniter 4!</title>
+	<title>Bootstrap Tests</title>
 	<meta name="description" content="The small framework with powerful features">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<link rel="shortcut icon" type="image/png" href="/favicon.ico"/>
@@ -55,12 +55,11 @@ $debug = FALSE;
 <body>
 	<div class="container mb-3">
 		<h3>Max Resolution: 1x</h3>
-		<?php foreach(['col', 'col-md-6 col-lg-4 col-xxl-2'] as $cols): ?>
+		<?php foreach(['col', 'col-md-6 col-lg-4 col-xl-2'] as $cols): ?>
 		<div class="row">
 			<div class="<?= $cols ?>">
 				<h5><?= $cols ?></h5>
 				<?= service('bootstrap')
-					->bootstrapVersion(5)
 					->dynamicImage($file)
 					->cols($cols)
 					->debug($debug)
@@ -72,7 +71,7 @@ $debug = FALSE;
 		</div>
 		<?php endforeach; ?>
 		<hr>
-		<h3>Max Resolution: 2x, Lazyload</h3>
+		<h3>Max Resolution: 2x, Step 0.5, Lazyload</h3>
 		<?php foreach(['col', 'col-md-6 col-lg-4 col-xl-2'] as $cols): ?>
 		<div class="row">
 			<div class="<?= $cols ?>">
@@ -81,7 +80,7 @@ $debug = FALSE;
 					->dynamicImage($file)
 					->debug($debug)
 					->cols($cols)
-					->hires(2)
+					->hires(2, 0.5)
 					->lazy(TRUE)
 					->element('picture', [], ['alt'=>'A cute kitten', 'class'=>'img-fluid'])
 					->render();
@@ -90,7 +89,7 @@ $debug = FALSE;
 		</div>
 		<?php endforeach; ?>
 		<hr>
-		<h3>Max Width: 800px (Max Resolution <?= config('Tomkirsch\Bootstrap\BootstrapConfig')->maxResolutionFactor ?>x)</h3>
+		<h3>Max Width: 800px (Max Resolution <?= config('Tomkirsch\Bootstrap\BootstrapConfig')->defaultMaxResolution ?>x)</h3>
 		<?php foreach(['col', 'col-md-6 col-lg-4 col-xl-2'] as $cols): ?>
 		<div class="row">
 			<div class="<?= $cols ?>">
@@ -128,6 +127,7 @@ $debug = FALSE;
 				->render();
 			?>
 		</div>
+		<hr>
 		<h3>LQIP Lazyload Fade-In</h3>
 		<div class="row">
 			<div class="col-6">

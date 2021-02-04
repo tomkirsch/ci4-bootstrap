@@ -1,5 +1,27 @@
 <?php namespace Tomkirsch\Bootstrap;
 
+/*
+	DynamicImage allows you to utilize a dynamic image resizing script to output sizes needed
+	for a Bootstrap layout. There are some requirements:
+	
+	1) This only works in regular .container elements (NOT .container-fluid)
+	2) This does not work in NESTED .container elements
+	3) A .col container should be the ONLY col in the row. You will need to define sizes for this tool (sm, lg, xl)
+	
+	Supported elements: <img> and <picture>
+	
+	service('bootstrap')
+		->dynamicImage('my-source-file.jpg')
+		->withSize(1024, 768) // pass the size of the source file to avoid a getimagesize() call
+		->cols('col-6 col-lg-4')
+		->hires(2) // support 2x
+		->lazy(TRUE)
+		->element('picture', [], ['alt'=>'A cute kitten', 'class'=>'img-fluid'])
+		->render()
+	;
+
+*/
+
 class DynamicImage{
 	const LQIP_XS = 'xs';
 	const LQIP_PIXEL = 'pixel';
@@ -27,6 +49,7 @@ class DynamicImage{
 	protected $lpiqIsOwnImg;
 	protected $colClasses;
 	protected $hires;
+	protected $resolutionStep;
 	protected $isLazy;
 	protected $ratioPaddingClass;
 	protected $ratioWrapper;
@@ -59,6 +82,7 @@ class DynamicImage{
 		$this->el = $this->config->defaultElement ?? 'picture';
 		$this->isLazy = $this->config->defaultIsLazy ?? FALSE;
 		$this->hires = $this->config->defaultHires ?? static::HIRES_SOURCE;
+		$this->resolutionStep = $this->config->defaultResolutionStep ?? 1;
 		$this->lqip = $this->config->defaultLqip ?? NULL;
 		$this->ratioPaddingClass = $this->config->defaultRatioPaddingClass ?? NULL;
 		$this->ratioWrapper = FALSE;
@@ -100,6 +124,7 @@ class DynamicImage{
 		}
 		// always sort the classes for the caching mechanism
 		asort($this->colClasses);
+		$this->colClasses = array_unique($this->colClasses);
 		$this->wrapperAttr = $wrapperAttr;
 		return $this;
 	}
@@ -118,8 +143,9 @@ class DynamicImage{
 	}
 	
 	// supply a maximum factor (3 for 3x), a pixel width (800), 'source' to match source width, or a falsy value to disable high resolution support
-	public function hires($value){
+	public function hires($value, float $resolutionStep=1){
 		$this->hires = is_numeric($value) ? floatval($value) : $value;
+		$this->resolutionStep = $resolutionStep;
 		return $this;
 	}
 	
@@ -231,11 +257,11 @@ class DynamicImage{
 				$sourceAttr['media'] = '(min-width:'.$mediaWidth.'px)';
 				foreach($data as $factor=>$width){
 					// are we not supporting hi res devices? then skip
-					if($factor > 1 && empty($this->hires)) continue;
+					if(floatval($factor) > 1 && empty($this->hires)) continue;
 					$src = $this->destFileName($width, $this->getResolutionMedia($factor, $sourceAttr['media']));
 					// use a key here, so we don't get a bloated thing like "foo-800.jpg 4x, foo-800.jpg 3x, foo-800.jpg 2x"
 					$key = $src;
-					if($factor > 1) $src .= ' '.$factor.'x';
+					if(floatval($factor) > 1) $src .= ' '.$factor.'x';
 					$sources[$key] = $src;
 				}
 				if($this->destExt === 'webp' || $this->destExt === 'jp2'){
@@ -305,7 +331,7 @@ class DynamicImage{
 				// foo-800.jpg 2x
 				$file = $this->destFileName($width, $this->getResolutionMedia($factor));
 				$src = $file;
-				if($factor > 1) $src .= ' '.$factor.'x';
+				if(floatval($factor) > 1) $src .= ' '.$factor.'x';
 			}
 			$sources[$file] = $src; // use a key here, so we don't get a bloated thing like "foo-800.jpg 4x, foo-800.jpg 3x, foo-800.jpg 2x"
 		}
@@ -439,41 +465,42 @@ class DynamicImage{
 		Input: [1200=>190, 992=>480, 768=>360, 0=>450] Output: 
 		[
 			// media	=> [factor=>imageWidth, ...]
-			1200 		=> [4=>760, 3=>570, 2=>380, 1=>190],
-			992			=> [4=>1920, 3=>1440, 2=>960, 1=>480],
-			0			=> [4=>1800, 3=>1350, 2=>900, 1=>450]
+			1200 		=> ['4'=>760, '3'=>570, '2'=>380, '1'=>190],
+			992			=> ['4'=>1920, '3'=>1440, '2'=>960, '1'=>480],
+			0			=> ['4'=>1800, '3'=>1350, '2'=>900, '1'=>450]
 		]
 	*/
 	
 	protected function resolutionDict(array $imgMediaDict, int $srcMaxWidth, int $maxSize=NULL):array{
 		// figure out our max width and max resolution
 		$maxPx = PHP_INT_MAX; // used for min() operations
-		$maxResolution = $this->config->maxResolutionFactor;
-		if($maxSize <= 10){
-			// assume its a resolution factor, not pixel width. Ensure we're not over the max setting
-			$maxResolution = ($maxSize > $this->config->maxResolutionFactor) ? $this->config->maxResolutionFactor : $maxSize;
-		}else if($maxSize > 10){
+		$maxResolution = $this->config->defaultMaxResolution ?? 1;
+		if($maxSize !== NULL && $maxSize <= 10){
+			// assume its a resolution factor, not pixel width
+			$maxResolution = $maxSize;
+		}else if($maxSize !== NULL && $maxSize > 10){
 			// we were given a max pixel width to NEVER go over
 			$maxPx = $maxSize;
 		}
+		if($maxResolution < 1) throw new \Exception("Invalid max resolution: $maxResolution");
 		$resolutionDict = [];
 		foreach($imgMediaDict as $mediaWidth=>$imageWidth){
 			// loop through possible resolutions, highest first
-			for($i=$maxResolution; $i>=1; $i--){
-				$hiresWidth = min($maxPx, $imageWidth * $i); // never go over a specified max width
+			for($i = $maxResolution; $i >= 1; $i -= $this->resolutionStep){
+				$hiresWidth = floor(min($maxPx, $imageWidth * $i)); // never go over a specified max width
 				if($hiresWidth > $srcMaxWidth){
 					// too big... but see if our original is bigger than the "normal" resolution. At least we can sample up.
 					if($srcMaxWidth > $imageWidth){
 						$w = min($maxPx, $srcMaxWidth); // never go over a specified max width
 						if(!isset($resolutionDict[$mediaWidth])) $resolutionDict[$mediaWidth] = [];
-						$resolutionDict[$mediaWidth][$i] = $w;
+						$resolutionDict[$mediaWidth][(string) $i] = $w;
 					}else{
 						// nada... don't add to srcset
 					}
 				}else{
 					// the high res width is acceptable to use
 					if(!isset($resolutionDict[$mediaWidth])) $resolutionDict[$mediaWidth] = [];
-					$resolutionDict[$mediaWidth][$i] = $hiresWidth;
+					$resolutionDict[$mediaWidth][(string) $i] = $hiresWidth;
 				}
 			} // endfor
 		}
