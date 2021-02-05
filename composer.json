@@ -6,18 +6,6 @@
 		"php": "^7.3||^8.0",
 		"codeigniter4/framework": "^4"
 	},
-	"require-dev": {
-		"fakerphp/faker": "^1.9",
-		"mikey179/vfsstream": "^1.6",
-		"phpunit/phpunit": "^9.1"
-	},
-	"autoload": {
-		"psr-4": {
-			"Tomkirsch\\Bootstrap\\": "src/",
-			"App\\": "tests/app",
-			"Config\\": "tests/app/Config"
-		}
-	},
 	"archive": {
         "exclude": ["tests"]
 	}

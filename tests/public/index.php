@@ -1,4 +1,6 @@
 <?php
+// use autoload at the real root
+define('COMPOSER_PATH', __DIR__.'../../../vendor/autoload.php');
 
 // Valid PHP Version?
 $minPHPVersion = '7.3';
