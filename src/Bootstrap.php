@@ -28,7 +28,7 @@ class Bootstrap{
 	/*
 		Size detection for JS - output this anywhere in your <body>
 		Now you can get the size in real time:
-			let size = $('.bootstrap-sizes .d-block').getAttribute('data-size');
+			let size = $('.js-bootstrap-sizes .d-block').getAttribute('data-size');
 	*/
 	public function sizeDetectHtml($className='js-bootstrap-sizes', $debug=FALSE):string{
 		$out = '<div class="'.$className.'">';
