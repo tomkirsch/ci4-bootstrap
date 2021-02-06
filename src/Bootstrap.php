@@ -25,6 +25,30 @@ class Bootstrap{
 		return $this->dynamicImage;
 	}
 	
+	/*
+		Size detection for JS - output this anywhere in your <body>
+		Now you can get the size in real time:
+			let size = $('.bootstrap-sizes .d-block').getAttribute('data-size');
+	*/
+	public function sizeDetectHtml($className='js-bootstrap-sizes', $debug=FALSE):string{
+		$out = '<div class="'.$className.'">';
+		$containers = $this->config->containers();
+		// add the xs
+		$containers['xs'] = 0;
+		foreach($containers as $size1=>$width1){
+			$classes = '';
+			foreach($containers as $size2=>$width2){
+				$s = $size2 === 'xs' ? '' : '-'.$size2;
+				$vis = ($width1 === $width2) ? 'block' : 'none';
+				$classes .= " d$s-$vis";
+			}
+			$text = $debug ? $size1 : '';
+			$out .= '<div class="'.trim($classes).'" data-size="'.$size1.'">'.$text.'</div>';
+		}
+		$out .= '</div>';
+		return $out;
+	}
+	
 	
 	/* 
 		Display children of flexbox with breakpoints. Iterator must be greater than zero.

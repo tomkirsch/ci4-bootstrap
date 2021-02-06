@@ -13,17 +13,7 @@ $debug = FALSE;
 	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
 	
 	<style type="text/css">
-		.col, [class*="col"]{
-			border:#666 1px solid;
-			background: #CCC;
-			word-wrap: break-word;
-		}
-		h3{
-			font-size: 1rem;
-		}
-		h5{
-			font-size: 0.75rem;
-		}
+		/* padding-bottom ratio hack */
 		.ratiobox{
 			position: relative;
 			height: 0;
@@ -38,6 +28,7 @@ $debug = FALSE;
 			height: 100%;
 			display: block;
 		}
+		/* LQIP fade-in */
 		.fadebox img{
 			position: absolute;
 			transition: opacity 2s;
@@ -49,12 +40,35 @@ $debug = FALSE;
 		.fadebox .lazyloaded {
 			opacity: 1;
 		}
+		
+		/* for visuals only */
+		.col, [class*="col"]{
+			border:#666 1px solid;
+			background: #CCC;
+			word-wrap: break-word;
+		}
+		.bootstrap-sizes div{
+			background-color: cadetblue;
+			height: 50px;
+			text-align: center;
+			padding: 15px;
+		}
+		h3{
+			font-size: 1rem;
+		}
+		h5{
+			font-size: 0.75rem;
+		}
+		
 	</style>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/lazysizes/5.3.0/lazysizes.min.js" integrity="sha512-JrL1wXR0TeToerkl6TPDUa9132S3PB1UeNpZRHmCe6TxS43PFJUcEYUhjJb/i63rSd+uRvpzlcGOtvC/rDQcDg==" crossorigin="anonymous"></script>
 </head>
 <body>
 	
 	<div class="container mb-3">
+		<h3>Size Detection</h3>
+		<?= service('bootstrap')->sizeDetectHtml('bootstrap-sizes', TRUE) ?>
+		
 		<h3>Flex Columns</h3>
 		<div class="card-deck">
 			<?php 
