@@ -4,7 +4,7 @@ class Bootstrap{
 	protected $config;
 	protected $dynamicImage;
 	
-	public function __construct(?BsConfig $config=NULL){
+	public function __construct(?BootstrapConfig $config=NULL){
 		$this->config = $config ?? new BootstrapConfig();
 	}
 	

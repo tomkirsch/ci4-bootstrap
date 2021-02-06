@@ -11,7 +11,9 @@ Update your project: `composer install --no-dev --optimize-autoloader`
 
 Create the config file `Config\Bootstrap.php` and set your preferences. You MUST extend `Tomkirsch/Bootstrap/BootstrapConfig`
 ```
-use Tomkirsch/Bootstrap/BootstrapConfig;
+<?php namespace Config;
+
+use Tomkirsch\Bootstrap\BootstrapConfig;
 
 class Bootstrap extends BootstrapConfig{
 	// return the file to be used
@@ -54,7 +56,7 @@ class Bootstrap extends BootstrapConfig{
 ```
 The `dynamicImageFileName()` function should generate a URL/path to a controller that serves dynamic images.
 
-To use containers in a newer version of bootstrap, just add them to the `containers` and `breakpoints` arrays, then set $bsVersion to the array key. See `tomkirsch\Bootstrap\BootstrapConfig` for more info.
+To use containers in a newer version of bootstrap, just add them to the `containers` and `breakpoints` arrays, then set $bsVersion to the array key. See `Tomkirsch\Bootstrap\BootstrapConfig` for more info.
 
 Create the service in `Config\Services.php`:
 ```
