@@ -25,14 +25,20 @@ class BootstrapConfig extends BaseConfig{
 	// default LQIP (low quality image placeholder)
 	public $defaultLqip = 'xs';
 	
-	// use padding-bottom hack on wrapper
+	// use padding-bottom hack by default
+	public $defaultUseRatio = TRUE;
+	
+	// class name for padding hack
 	public $defaultRatioPaddingClass = 'ratiobox';
 	
+	// class name for cropping to a ratio (overflow:hidden)
+	public $defaultRatioCropClass = 'ratio-crop';
+	
 	// maximum supported resolution factor (2x, 3x, etc)
-	public $defaultMaxResolution = 4;
+	public $defaultMaxResolution = 2;
 	
 	// default resolution step to get from 1 to $maxResolutionFactor
-	public $defaultResolutionStep = 1;
+	public $defaultResolutionStep = 0.5;
 	
 	// number of columns in the grid
 	public $gridCols = 12;

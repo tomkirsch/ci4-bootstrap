@@ -51,7 +51,9 @@ class DynamicImage{
 	protected $hires;
 	protected $resolutionStep;
 	protected $isLazy;
+	protected $ratio;
 	protected $ratioPaddingClass;
+	protected $ratioCropClass;
 	protected $ratioWrapper;
 	protected $fileList;
 	
@@ -85,7 +87,9 @@ class DynamicImage{
 		$this->resolutionStep = $this->config->defaultResolutionStep ?? 1;
 		$this->lqip = $this->config->defaultLqip ?? NULL;
 		$this->ratioPaddingClass = $this->config->defaultRatioPaddingClass ?? NULL;
-		$this->ratioWrapper = FALSE;
+		$this->ratioCropClass = $this->config->defaultRatioCropClass ?? NULL;
+		$this->ratio = $this->config->defaultUseRatio ?? FALSE;
+		$this->ratioWrapper = NULL;
 		return $this;
 	}
 	
@@ -129,10 +133,11 @@ class DynamicImage{
 		return $this;
 	}
 	
-	// sets ratio padding class, or removes the functionality
-	public function ratio(?string $className, bool $makeWrapper=FALSE){
-		$this->ratioPaddingClass = $className;
-		$this->ratioWrapper = $makeWrapper;
+	// $value can be FALSE to disable ratio padding, TRUE to use the image's ratio, or a number for a custom ratio (ie. 1 for square crop)
+	public function ratio($value, $wrapperAttr=NULL, ?string $className=NULL){
+		$this->ratio = $value;
+		$this->ratioWrapper = ($wrapperAttr === TRUE) ? [] : $wrapperAttr;
+		if($className) $this->ratioPaddingClass = $className;
 		return $this;
 	}
 	
@@ -196,9 +201,6 @@ class DynamicImage{
 			list($this->srcWidth, $this->srcHeight) = $size;
 		}
 		
-		// calculate padding for wrapper/picture
-		$padding = round(($this->srcHeight / $this->srcWidth) * 100, 3);
-		
 		// set the data-orientation attribute for CSS/JS
 		$this->elAttr['data-orientation'] = $this->getOrientation();
 		
@@ -211,6 +213,13 @@ class DynamicImage{
 			// write cache
 			$this->setMediaCache($cacheKey, $mediaDict);
 		}
+		// are we using a custom ratio that is larger than our own ratio? then offset the container widths since it will be "zoomed in" behind the crop
+		$myRatio = $this->getRatio();
+		if($this->ratio && $this->ratio !== TRUE && $myRatio < $this->ratio){
+			foreach($mediaDict as $media=>$width){
+				$mediaDict[$media] = $width * ($this->ratio + $myRatio);
+			}
+		}
 		// get resolution dictionary
 		$maxSize = ($this->hires === static::HIRES_SOURCE) ? $this->srcWidth : $this->hires;
 		$resolutionDict = $this->resolutionDict($mediaDict, $this->srcWidth, $maxSize);
@@ -219,22 +228,32 @@ class DynamicImage{
 		$wrapCount = 0;
 		$wrapperAttr = $this->wrapperAttr;
 		if($wrapperAttr !== NULL){
+			// add col classes to the wrapper
 			$colString = implode(' ', $this->colClasses);
 			$wrapperAttr = $this->ensureAttr('class', $colString, $wrapperAttr);
-			if($this->ratioPaddingClass && !$this->ratioWrapper){
-				$wrapperAttr = $this->ensureAttr('class', $this->ratioPaddingClass, $wrapperAttr);
-				$wrapperAttr = $this->ensureAttr('style', "padding-bottom:$padding".'%', $wrapperAttr);
+			// if a ratio wrapper wasn't specified, apply the ratio to this wrapper element
+			if($this->ratio && $this->ratioWrapper === NULL){
+				$wrapperAttr = $this->setRatio($wrapperAttr);
 			}
 			$out .= '<div'.stringify_attributes($wrapperAttr).'>'.$this->nl();
 			$wrapCount++;
 		}
 		// if it's an <img> with ratio padding, assume we need the ratioWrapper
-		if($this->el === 'img' && $this->ratioPaddingClass) $this->ratioWrapper = TRUE;
-		$ratioAttr = NULL;
-		if($this->ratioWrapper){
-			$ratioAttr = $this->ensureAttr('class', $this->ratioPaddingClass, []);
-			$ratioAttr = $this->ensureAttr('style', "padding-bottom:$padding".'%', $ratioAttr);
-			$out .= '<div'.stringify_attributes($ratioAttr).'>'.$this->nl();
+		if($this->el === 'img' && $this->ratio) $this->ratioWrapper = [];
+		// write the ratio wrapper
+		if($this->ratio && $this->ratioWrapper !== NULL){
+			// is it a custom ratio? then we'll need to wrap it with a div with THAT padding to crop it
+			if($this->ratio !== TRUE){
+				$pad = $this->ratio * 100;
+				$ratioAttr = $this->ensureAttr('style', "padding-bottom:$pad%;", []);
+				if($this->ratioCropClass){
+					$ratioAttr = $this->ensureAttr('class', $this->ratioCropClass, $ratioAttr);
+				}
+				$out .= '<div'.stringify_attributes($ratioAttr).'>'.$this->nl();
+				$wrapCount++;
+			}
+			$attr = $this->setRatio($this->ratioWrapper);
+			$out .= '<div'.stringify_attributes($attr).'>'.$this->nl();
 			$wrapCount++;
 		}
 		
@@ -246,9 +265,8 @@ class DynamicImage{
 			// <picture>
 			$pictureAttr = $this->elAttr;
 			// if we don't have a wrapper and the user wants the raio padding, use it here
-			if($this->ratioPaddingClass){
-				$pictureAttr = $this->ensureAttr('class', $this->ratioPaddingClass, $pictureAttr);
-				$pictureAttr = $this->ensureAttr('style', "padding-bottom:$padding".'%', $pictureAttr);
+			if($this->ratio && $this->ratioWrapper === NULL){
+				$pictureAttr = $this->setRatio($pictureAttr);
 			}
 			$out .= '<picture'.stringify_attributes($pictureAttr).'>'.$this->nl();
 			foreach($resolutionDict as $mediaWidth => $data){
@@ -315,26 +333,28 @@ class DynamicImage{
 		$out = '';
 		$sources = [];
 		$sizes = [];
-		// for <img>, we only process the zero media width (use <picture> for better control)
-		$data = array_pop($resolutionDict);
+		// use the largest media width, which is always first in the dict
+		$data = array_shift($resolutionDict);
 		$minWidth = min($data);
 		foreach($data as $factor=>$width){
-			if(!$this->hires){
-				$file = $this->destFileName($width, ($width === $minWidth) ? NULL : '(min-width:'.$width.'px)');
-				// foo-800.jpg 800w
+			$mediaQuery = '(min-width:'.$width.'px)';
+			$file = $this->destFileName($width, ($width === $minWidth) ? NULL : $mediaQuery);
+			if(empty($this->hires)){
+				// foo-800.jpg 800w, foo-400.jpg 400w, foo-100.jpg
 				$src = $file.' '.$width.'w';
 				// (min-width: 860px) 800px
-				$size = ($width === $minWidth) ? '' : '(min-width:'.$width.'px) ';
+				$size = ($width === $minWidth) ? '' : $mediaQuery.' ';
 				$size .= $width.'px';
 				$sizes[] = $size;
 			}else{
-				// foo-800.jpg 2x
+				// foo-800.jpg 2x, foo-400.jpg
 				$file = $this->destFileName($width, $this->getResolutionMedia($factor));
 				$src = $file;
 				if(floatval($factor) > 1) $src .= ' '.$factor.'x';
 			}
 			$sources[$file] = $src; // use a key here, so we don't get a bloated thing like "foo-800.jpg 4x, foo-800.jpg 3x, foo-800.jpg 2x"
 		}
+		
 		
 		$imgAttr = $this->elAttr;
 		$lqipAttr = $this->getLqipAttr($mediaDict); // set the 'src'
@@ -347,6 +367,10 @@ class DynamicImage{
 		// lazyload class
 		if($this->isLazy){
 			$imgAttr = $this->ensureAttr('class', 'lazyload', $imgAttr);
+		}
+		// sizes
+		if(!empty($sizes)){
+			$imgAttr = $this->ensureAttr('sizes', implode(',', $sizes), $imgAttr);
 		}
 		// srcset or data-srcset
 		$attrName = $this->isLazy ? 'data-srcset' : 'srcset';
@@ -532,6 +556,35 @@ class DynamicImage{
 	
 	protected function setMediaCache(string $key, array $value){
 		$this->mediaCache[$key] = $value;
+	}
+	
+	protected function setRatio(array $attr=[]):array{
+		$attr = $this->ensureAttr('class', $this->ratioPaddingClass, $attr);
+		
+		$orientation = $this->getOrientation();
+		$myRatio = $this->getRatio();
+		$containerRatio = ($this->ratio === TRUE) ? round($this->srcHeight / $this->srcWidth, 5) : $this->ratio;
+		
+		if($containerRatio === $myRatio){
+			$myRatio *= 100;
+			$style = "padding-bottom:$myRatio%;";
+		}else{
+			// a custom ratio was passed
+			// if the ratio is less than the container, we need to add it
+			if($myRatio < $containerRatio){
+				$myRatio += $containerRatio;
+			}
+			$ratioSide = ($orientation === 'landscape') ? 'right' : 'bottom';
+			$otherSide = ($orientation === 'landscape') ? 'bottom' : 'right';
+			$myRatio *= 100;
+			$containerRatio *= 100;
+			$style = "padding-$otherSide:$containerRatio%;padding-$ratioSide:$myRatio%;";
+		}
+		return $this->ensureAttr('style', $style, $attr);
+	}
+	
+	protected function getRatio(){
+		return round($this->srcHeight / $this->srcWidth, 5);
 	}
 	
 	// ensure attributes are an array with the given class(es)

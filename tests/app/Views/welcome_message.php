@@ -13,7 +13,7 @@ $debug = FALSE;
 	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
 	
 	<style type="text/css">
-		/* padding-bottom ratio hack */
+		/* padding-bottom ratio */
 		.ratiobox{
 			position: relative;
 			height: 0;
@@ -28,6 +28,21 @@ $debug = FALSE;
 			height: 100%;
 			display: block;
 		}
+		.ratio-crop{
+			overflow: hidden;
+			position: relative;
+			height: 0;
+			width: 100%;
+		}
+		.ratio-crop > *,
+		.ratio-crop > .ratiobox{
+			display: block;
+			position: absolute;
+			width: 100%;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+		}
 		/* LQIP fade-in */
 		.fadebox img{
 			position: absolute;
@@ -41,7 +56,7 @@ $debug = FALSE;
 			opacity: 1;
 		}
 		
-		/* for visuals only */
+		/******** Following rules are for testing visuals only ********/
 		.col, [class*="col"]{
 			border:#666 1px solid;
 			background: #CCC;
@@ -146,7 +161,7 @@ $debug = FALSE;
 				->dynamicImage($file)
 				->debug($debug)
 				->cols('col-6', ['class'=>'wrapperClass'])
-				->ratio(NULL)
+				->ratio(FALSE)
 				->lqip(100)
 				->element('picture', [], ['alt'=>'A cute kitten', 'class'=>'img-fluid'])
 				->render();
@@ -155,7 +170,7 @@ $debug = FALSE;
 				->dynamicImage($file)
 				->debug($debug)
 				->cols('col-6', ['class'=>'wrapperClass'])
-				->ratio(NULL)
+				->ratio(FALSE)
 				->lqip('#FF0000')
 				->element('picture', [], ['alt'=>'A cute kitten', 'class'=>'img-fluid'])
 				->render();
@@ -169,7 +184,7 @@ $debug = FALSE;
 					->dynamicImage($file)
 					->debug($debug)
 					->cols('col-6')
-					->ratio('ratiobox fadebox') // add fadebox class for css transition & positioning
+					->ratio(TRUE, FALSE, 'ratiobox fadebox') // add fadebox class for css transition & positioning
 					->lazy(TRUE)
 					->lqip(100, [], TRUE) // lqip must be a separate <img> element
 					->element('img', ['alt'=>'A cute kitten', 'class'=>'img-fluid']) // fade transition won't work for <picture>!
@@ -181,10 +196,54 @@ $debug = FALSE;
 					->dynamicImage($file)
 					->debug($debug)
 					->cols('col-6')
-					->ratio('ratiobox fadebox') // add fadebox class for css transition & positioning
+					->ratio(TRUE, FALSE, 'ratiobox fadebox') // add fadebox class for css transition & positioning
 					->lazy(TRUE)
 					->lqip('#FF0000', [], TRUE) // lqip must be a separate <img> element
 					->element('img', ['alt'=>'A cute kitten', 'class'=>'img-fluid']) // fade transition won't work for <picture>!
+					->render();
+				?>
+			</div>
+		</div>
+		
+		<hr>
+		<h3>1:1 Crop</h3>
+		<div class="row">
+			<div class="col-6">
+				<?= service('bootstrap')
+					->dynamicImage('kitten-portrait-src.jpg')
+					->cols('col-6')
+					->ratio(1, TRUE)
+					->lazy(TRUE)
+					->render();
+				?>
+			</div>
+			<div class="col-6">
+				<?= service('bootstrap')
+					->dynamicImage('kitten-src.jpg')
+					->cols('col-6')
+					->ratio(1, TRUE)
+					->lazy(TRUE)
+					->render();
+				?>
+			</div>
+		</div>
+		<h3>16:9 Crop</h3>
+		<div class="row">
+			<div class="col-6">
+				<?= service('bootstrap')
+					->dynamicImage('kitten-portrait-src.jpg')
+					->cols('col-6')
+					->ratio(9/16, TRUE)
+					->lazy(TRUE)
+					->render();
+				?>
+			</div>
+			<div class="col-6">
+				<?= service('bootstrap')
+					->dynamicImage('kitten-src.jpg')
+					->cols('col-6')
+					->ratio(9/16, TRUE)
+					->lazy(TRUE)
 					->render();
 				?>
 			</div>
