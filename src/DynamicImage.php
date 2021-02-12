@@ -564,20 +564,16 @@ class DynamicImage{
 		$orientation = $this->getOrientation();
 		$myRatio = $this->getRatio();
 		$containerRatio = ($this->ratio === TRUE) ? round($this->srcHeight / $this->srcWidth, 5) : $this->ratio;
-		
+		$myRatio *= 100;
+		$containerRatio *= 100;
 		if($containerRatio === $myRatio){
-			$myRatio *= 100;
 			$style = "padding-bottom:$myRatio%;";
 		}else{
-			// a custom ratio was passed
-			// if the ratio is less than the container, we need to add it
 			if($myRatio < $containerRatio){
-				$myRatio += $containerRatio;
+				$myRatio = (100 * 100) / $myRatio;
 			}
 			$ratioSide = ($orientation === 'landscape') ? 'right' : 'bottom';
 			$otherSide = ($orientation === 'landscape') ? 'bottom' : 'right';
-			$myRatio *= 100;
-			$containerRatio *= 100;
 			$style = "padding-$otherSide:$containerRatio%;padding-$ratioSide:$myRatio%;";
 		}
 		return $this->ensureAttr('style', $style, $attr);
