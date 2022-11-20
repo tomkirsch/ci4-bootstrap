@@ -2,33 +2,42 @@
 
 namespace Tomkirsch\Bootstrap;
 
-/*
-	DynamicImage allows you to utilize a dynamic image resizing script to output sizes needed
-	for a Bootstrap layout. There are some requirements:
-	
-	1) This only works in regular .container elements (NOT .container-fluid)
-	2) This does not work in NESTED .container elements
-	3) A .col container should be the ONLY col in the row. You will need to define sizes for this tool (sm, lg, xl)
-	
-	Supported elements: <img> and <picture>
-	
-	service('bootstrap')
-		->dynamicImage('my-source-file.jpg')
-		->withSize(1024, 768) // pass the size of the source file to avoid a getimagesize() call
-		->cols('col-6 col-lg-4')
-		->hires(2) // support 2x
-		->lazy(TRUE)
-		->element('picture', [], ['alt'=>'A cute kitten', 'class'=>'img-fluid'])
-		->render()
-	;
+/**
+ * DynamicImage allows you to utilize a dynamic image resizing script to output sizes needed for a Bootstrap layout.
+ * Notes:
+ * 1) This only works in regular .container elements (NOT .container-fluid)!
+ * 2) This does not work in NESTED .container elements
+ * 3) A .col container should be the ONLY col in the row. You will need to define sizes for this tool (sm, lg, etc.)
+ * 
+ * Supported elements: <img> and <picture>
+ * Example:
+ * 
+ * service('bootstrap')
+ * ->dynamicImage('my-source-file.jpg')
+ * ->withSize(1024, 768) // pass the size of the source file to avoid a getimagesize() call
+ * ->cols('col-6 col-lg-4')
+ * ->hires(2) // support 2x (the 1024px image will be downloaded for a 512px width retina display)
+ * ->lazy(TRUE) // support data-src and data-srcset
+ * ->element('picture', [], ['alt'=>'A cute kitten', 'class'=>'img-fluid'])
+ * ->render();
+ * 
+ * See tests/app/Views/welcome_message.php for more examples
+ */
 
-*/
 
 class DynamicImage
 {
+	/**
+	 * LQIP setting to use the source image at the smallest bootstrap breakpoint width as the placeholder
+	 */
 	const LQIP_XS = 'xs';
+	/**
+	 * LQIP setting to use a transparent pixel as a placeholder
+	 */
 	const LQIP_PIXEL = 'pixel';
-
+	/**
+	 * Hires setting that uses the source image's width as the largest possible size to be displayed
+	 */
 	const HIRES_SOURCE = 'source';
 
 	protected $config;
@@ -68,18 +77,9 @@ class DynamicImage
 		$this->resetAll();
 	}
 
-	// resets the file parameters, but leaves all other settings intact from the last call (lqip, lazy, etc)
-	public function resetFile()
-	{
-		// these will almost always be different
-		foreach (['src', 'srcExt', 'dest', 'destExt', 'srcWidth', 'srcHeight',] as $prop) {
-			$this->$prop = NULL;
-		}
-		$this->fileList = [];
-		return $this;
-	}
-
-	// reset everything back to config defaults
+	/**
+	 * Reset everything to config defaults
+	 */
 	public function resetAll()
 	{
 		$this->resetFile();
@@ -99,13 +99,35 @@ class DynamicImage
 		return $this;
 	}
 
+	/**
+	 * Reset the file parameter, but leaves all other settings intact from the last call (lqip, lazy, etc). Useful for bulk actions.
+	 */
+	public function resetFile()
+	{
+		// these will almost always be different
+		foreach (['src', 'srcExt', 'dest', 'destExt', 'srcWidth', 'srcHeight',] as $prop) {
+			$this->$prop = NULL;
+		}
+		$this->fileList = [];
+		return $this;
+	}
+
+	/**
+	 * Sets the debugger to be on or off to easily see what <source>s are generated
+	 */
 	public function debug(bool $value)
 	{
 		$this->mediaDebug = $value;
 		return $this;
 	}
 
-	// sets the source file to read. $dest can be used to dynamically rename the file. $query can pass a query string to the dest filename string
+	/**
+	 *  Sets the source file to read; $dest can be used to dynamically rename the file; $query can pass a query string to the dest filename string
+	 * 
+	 * @param string $src Source file
+	 * @param string|null $dest Destination (public-facing file, possibly rewritten with .htaccess)
+	 * @param string|array|null $query GET parameters to append to the destination
+	 */
 	public function withFile(string $src, ?string $dest = NULL, $query = NULL)
 	{
 		// remove ext from filename(s)
@@ -121,7 +143,9 @@ class DynamicImage
 		return $this;
 	}
 
-	// use this to avoid expensive getimagesize() calls
+	/**
+	 * If you know the source image size, use this to avoid expensive getimagesize() calls
+	 */
 	public function withSize(int $width, int $height)
 	{
 		$this->srcWidth = $width;
@@ -129,7 +153,11 @@ class DynamicImage
 		return $this;
 	}
 
-	// supply col-* classes so we can figure out the container widths. If $wrapperAttr is set, a wrapper div will be created with the col classes
+	/**
+	 * Tell the library what col-* classes you'll be using. If $wrapperAttr is set, a wrapper div will be automagically be printed with the passed col classes
+	 * @param string|array|null $cols The column names (ex "col-md-5 col-lg-2")
+	 * @param array|null $wrapperAttr Attributes to add to the wrapper
+	 */
 	public function cols($cols = NULL, ?array $wrapperAttr = NULL)
 	{
 		$this->colClasses = ['col-12'];
@@ -143,7 +171,13 @@ class DynamicImage
 		return $this;
 	}
 
-	// $value can be FALSE to disable ratio padding, TRUE to use the image's ratio, or a number for a custom ratio (ie. 1 for square crop)
+	/**
+	 * Sets the padding-bottom on the <picture>
+	 * 
+	 * @param bool|float $value FALSE will disable ratio padding, TRUE will use the image's original ratio. You can pass a float too, like (9/16) for 16:9
+	 * @param bool|array|null $wrapperAttr Attributes to add to the ratio wrapper html
+	 * @param string|null $className Useful for when you have common ratio padding classes, like .square or .sixteenbynine
+	 */
 	public function ratio($value, $wrapperAttr = NULL, ?string $className = NULL)
 	{
 		$this->ratio = $value;
@@ -152,14 +186,20 @@ class DynamicImage
 		return $this;
 	}
 
-	// use data-src and data-srcset
+	/**
+	 * Enable lazy-load - if true, HTML uses data-src and data-srcset attributes
+	 */
 	public function lazy(bool $value)
 	{
 		$this->isLazy = $value;
 		return $this;
 	}
 
-	// supply a maximum factor (3 for 3x), a pixel width (800), 'source' to match source width, or a falsy value to disable high resolution support
+	/**
+	 * Enable support for high resolution images.
+	 * @param int|string|null $value Pass string 'source' to match the source image width, a scale factor (2-10), or pixel width to limit how large we want to display the image
+	 * @param float|null $resolutionStep Determines how many steps we want to offer. For example, hires(2, 0.5) will generate 2x and 1.5x versions
+	 */
 	public function hires($value, float $resolutionStep = 1)
 	{
 		$this->hires = is_numeric($value) ? floatval($value) : $value;
@@ -167,15 +207,12 @@ class DynamicImage
 		return $this;
 	}
 
-	/* 
-		Sets the low quality image placeholder. $src can be:
-			'xs' 		- the smallest bootstrap container size (default)
-			'pixel'		- a transparent pixel
-			int width	- dynamically resized width in pixels (ie. 100px)
-			string hex 	- a solid color (ie. '#FF0000')
-			string otherFileName - an alternate file
-		Setting $this->lpiqIsOwnImg to TRUE assumes lazyload.
-	*/
+	/**
+	 * Sets the Low-Quality Image Placeholder
+	 * @param string|int|null $src Possible values - string 'xs': the source image at the smallest bootstrap container size, string 'pixel': a transparent pixel, int width: dynamically resized width in pixels (ie. 100px), string hex: a solid color (ie. '#FF0000'), string otherFileName: an alternate file
+	 * @param array $attr Attributes to attach to the LQIP element
+	 * @param bool $lpiqIsOwnImg This must be true if LQIP is an lazy-loaded <img> element. Positioning CSS is required to lay it on top of the <picture>
+	 */
 	public function lqip(?string $src = NULL, array $attr = [], bool $lpiqIsOwnImg = FALSE)
 	{
 		$this->lqip = $src;
@@ -185,6 +222,12 @@ class DynamicImage
 		return $this;
 	}
 
+	/**
+	 * Set the element to <picture> (with <source>s and <img>) or just an <img> with srcset attributes
+	 * @param string $value Must be either 'picture' or 'img'
+	 * @param array $attr HTML attributes to set on the element
+	 * @param array $attr HTML attributes to set on the nested <img> element (only valid if the element is a <picture>)
+	 */
 	// set the desired element (img or picture), with optional attributes
 	public function element(string $value, array $attr = [], array $imgAttr = [])
 	{
@@ -194,18 +237,22 @@ class DynamicImage
 				$this->el = $value;
 				break;
 			default:
-				throw new \Exception("Unknown element: $el");
+				throw new \Exception("Unknown element: $value");
 		}
 		$this->elAttr = $attr;
 		$this->imgAttr = $imgAttr;
 		return $this;
 	}
 
-	// set $resetAll to FALSE when working in loops. $resetFile can be set to FALSE when resizing the same file
+	/**
+	 * Renders the HTML
+	 * @param bool $resetAll Set to FALSE when working in loops
+	 * @param bool $resetFile Set to FALSE when making multiple calls with the same file
+	 */
 	public function render(bool $resetAll = TRUE, bool $resetFile = TRUE): string
 	{
-		if (empty($this->colClasses)) throw new \Exception("You must call Bootstrap::cols()");
-		if (empty($this->src)) throw new \Exception("You must call Bootstrap::withFile()");
+		if (empty($this->colClasses)) throw new \Exception("You must call DynamicImage::cols()");
+		if (empty($this->src)) throw new \Exception("You must call DynamicImage::withFile()");
 		if ($this->el === 'picture' && $this->lpiqIsOwnImg) throw new \Exception("The element must be 'img' if LQIP is it's own element (not a 'picture')");
 		if (empty($this->el)) $this->el = 'img'; //default to something
 		$out = $this->nl();
@@ -405,7 +452,7 @@ class DynamicImage
 			case static::LQIP_XS:
 				// use xs container width
 				// if we didn't see a given width for xs (ie. col-6), then use the smallest in bootstrap containers
-				$width = $mediaDict[0] ?? min($this->config->containers());
+				$width = floor($mediaDict[0] ?? min($this->config->containers()));
 				$attr['src'] = $this->destFileName($width);
 				break;
 			case static::LQIP_PIXEL:
@@ -424,7 +471,7 @@ class DynamicImage
 					$attr['src'] = $this->lqip;
 				} else {
 					// empty/null. use the first image as presribed by mediaDict
-					$width = $mediaDict[0] ?? min($this->config->containers());
+					$width = floor($mediaDict[0] ?? min($this->config->containers()));
 					$attr['src'] = $this->destFileName($width);
 				}
 		} // endswitch
@@ -448,7 +495,11 @@ class DynamicImage
 			$colDict[$colNum] = $colSize;
 		}
 		// sort the dictionary by $colSize, from smallest bootstrap size to largest, so bigger cols overwrite mediaWidth keys generated by smaller ones
-		uasort($colDict, [$this, '_colDictSort']);
+		uasort($colDict, function (string $a, string $b) {
+			$aVal = ($a === 'xs') ? 0 : $this->config->container($a);
+			$bVal = ($b === 'xs') ? 0 : $this->config->container($b);
+			return ($aVal <=> $bVal);
+		});
 		return $colDict;
 	}
 
@@ -553,14 +604,6 @@ class DynamicImage
 		return $resolutionDict;
 	}
 
-	// sorting comparison
-	public function _colDictSort(string $a, string $b)
-	{
-		$aVal = ($a === 'xs') ? 0 : $this->config->container($a);
-		$bVal = ($b === 'xs') ? 0 : $this->config->container($b);
-		return ($aVal <=> $bVal);
-	}
-
 	// squre/portrait/landscape
 	public function getOrientation(): string
 	{
@@ -660,13 +703,17 @@ class DynamicImage
 		return [implode('.', $parts), $ext];
 	}
 
-	// transparent pixel base64
+	/**
+	 * Utility - transparent pixel LQIP
+	 */
 	public function pixel64()
 	{
 		return 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
 	}
 
-	// svg rect base64
+	/**
+	 * Utility - base64 data to generate solid color LQIP using SVG rect
+	 */
 	public function svgRect64(string $color): string
 	{
 		$svg = '<svg preserveAspectRatio="none" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" fill="' . $color . '" /></svg>';

@@ -2,9 +2,23 @@
 
 namespace Tomkirsch\Bootstrap;
 
+/**
+ * A handy class for automating bootstrap HTML.
+ */
 class Bootstrap
 {
+	/**
+	 * The config instance
+	 * 
+	 * @var BootstrapConfig
+	 */
 	protected $config;
+
+	/**
+	 * The DynamicImage instance
+	 * 
+	 * @var DynamicImage
+	 */
 	protected $dynamicImage;
 
 	public function __construct($config = NULL)
@@ -12,14 +26,19 @@ class Bootstrap
 		$this->config = $config ?? new BootstrapConfig();
 	}
 
-	public function bootstrapVersion($version)
+	/**
+	 * Set the current bootstrap version
+	 */
+	public function bootstrapVersion(int $version)
 	{
 		if (!array_key_exists('v' . $version, $this->config->containers)) throw new \Exception("Bootstrap v$version is not supported, please add data to BootstrapConfig.");
 		$this->config->bsVersion = $version;
 		return $this;
 	}
 
-	// perform dynamic image operations - see DynamicImage class
+	/**
+	 * Fetch the shared DynamicImage class. See class for usage.
+	 */
 	public function dynamicImage(?string $src = NULL, ?string $dest = NULL, $query = NULL): DynamicImage
 	{
 		if (!$this->dynamicImage) {
@@ -31,14 +50,14 @@ class Bootstrap
 		return $this->dynamicImage;
 	}
 
-	/*
-		Size detection for JS - output this anywhere in your <body>
-		Now you can get the size in real time:
-			let size = $('.js-bootstrap-sizes .d-block').getAttribute('data-size');
-	*/
-	public function sizeDetectHtml($className = 'js-bootstrap-sizes', $debug = FALSE): string
+	/**
+	 * HTML for size detection in Javascript. Usage:
+	 * let size = $('.js-bootstrap-sizes .d-block').getAttribute('data-size');
+	 */
+	public function sizeDetectHtml(string $className = 'js-bootstrap-sizes', bool $debug = FALSE): string
 	{
 		$out = '<div class="' . $className . '">';
+		$out .= $this->config->prettyPrint ? "\n" : "";
 		$containers = $this->config->containers();
 		// add the xs
 		$containers['xs'] = 0;
@@ -51,22 +70,25 @@ class Bootstrap
 			}
 			$text = $debug ? $size1 : '';
 			$out .= '<div class="' . trim($classes) . '" data-size="' . $size1 . '">' . $text . '</div>';
+			$out .= $this->config->prettyPrint ? "\n" : "";
 		}
 		$out .= '</div>';
+		$out .= $this->config->prettyPrint ? "\n" : "";
 		return $out;
 	}
 
-
+	/**
+	 * Wrap children of flexbox using bootstrap breakpoints using breaker div. Iterator must be greater than zero!
+	 */
 	/* 
-		Display children of flexbox with breakpoints. Iterator must be greater than zero.
-		ex: 
+		Example: 
 		<div class="card-deck">
 			<?php $i=0; foreach($items as $item): ?>
 			<div class="card">
 				<?= $item ?>
 			</div>
 			<!-- call flexColumn() AFTER the .card div -->
-			<?= $bsUtils->flexColumn(++$i, [
+			<?= $bootstrap->flexColumn(++$i, [
 				'sm'=>2, // wrap every 2 cards on sm
 				'md'=>3, // wrap every 3 cards on md
 				'lg'=>4,
@@ -96,6 +118,7 @@ class Bootstrap
 					}
 				}
 				$out .= '"></div>';
+				$out .= $this->config->prettyPrint ? "\n" : "";
 			}
 		}
 		return $out;
