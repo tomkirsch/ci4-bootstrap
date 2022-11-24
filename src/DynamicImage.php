@@ -218,7 +218,10 @@ class DynamicImage
 		$this->lqip = $src;
 		$this->lqipAttr = $attr;
 		$this->lpiqIsOwnImg = $lpiqIsOwnImg;
-		if ($this->lpiqIsOwnImg) $this->lazy(TRUE);
+		if ($this->lpiqIsOwnImg) {
+			$this->lazy(TRUE);
+			$this->element('img');
+		}
 		return $this;
 	}
 
