@@ -401,10 +401,17 @@ class DynamicImage
 		$out = '';
 		$sources = [];
 		$sizes = [];
-		// use the largest media width, which is always first in the dict
-		$data = array_shift($resolutionDict);
-		$minWidth = min($data);
-		foreach ($data as $factor => $width) {
+
+		// since we can't arrage using picture, we must only specify one file for each resolution. make it the biggest it'll possibly be to preven upscaling
+		$factorWidths = [];
+		foreach ($resolutionDict as $screenSize => $data) {
+			foreach ($data as $factor => $width) {
+				$factorWidths[$factor] = max($factorWidths[$factor] ?? 0, $width);
+			}
+		}
+
+		$minWidth = min($factorWidths);
+		foreach ($factorWidths as $factor => $width) {
 			$mediaQuery = '(min-width:' . $width . 'px)';
 			$file = $this->destFileName($width, ($width === $minWidth) ? NULL : $mediaQuery);
 			if (empty($this->hires)) {
@@ -422,7 +429,6 @@ class DynamicImage
 			}
 			$sources[$file] = $src; // use a key here, so we don't get a bloated thing like "foo-800.jpg 4x, foo-800.jpg 3x, foo-800.jpg 2x"
 		}
-
 
 		$imgAttr = $this->elAttr;
 		$lqipAttr = $this->getLqipAttr($mediaDict); // set the 'src'
@@ -572,6 +578,7 @@ class DynamicImage
 
 	protected function resolutionDict(array $imgMediaDict, int $srcMaxWidth, int $maxSize = NULL): array
 	{
+
 		// figure out our max width and max resolution
 		$maxPx = PHP_INT_MAX; // used for min() operations
 		$maxResolution = $this->config->defaultMaxResolution ?? 1;
