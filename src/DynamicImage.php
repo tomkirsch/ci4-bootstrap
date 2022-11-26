@@ -9,7 +9,7 @@ namespace Tomkirsch\Bootstrap;
  * 2) This does not work in NESTED .container elements
  * 3) A .col container should be the ONLY col in the row. You will need to define sizes for this tool (sm, lg, etc.)
  * 
- * Supported elements: <img> and <picture>
+ * Supported elements: <img> and <picture>. Use <picture> for the most accurate sizing!
  * Example:
  * 
  * service('bootstrap')
@@ -287,8 +287,7 @@ class DynamicImage
 			}
 		}
 		// get resolution dictionary
-		$maxSize = ($this->hires === static::HIRES_SOURCE) ? $this->srcWidth : $this->hires;
-		$resolutionDict = $this->resolutionDict($mediaDict, $this->srcWidth, $maxSize);
+		$resolutionDict = $this->resolutionDict($mediaDict, $this->srcWidth);
 
 		// make wrappers?
 		$wrapCount = 0;
@@ -328,36 +327,7 @@ class DynamicImage
 			// <img> with srcset
 			$out .= $this->renderSrcsetImg($mediaDict, $resolutionDict);
 		} else {
-			// <picture>
-			$pictureAttr = $this->elAttr;
-			// if we don't have a wrapper and the user wants the raio padding, use it here
-			if ($this->ratio && $this->ratioWrapper === NULL) {
-				$pictureAttr = $this->setRatio($pictureAttr);
-			}
-			$out .= '<picture' . stringify_attributes($pictureAttr) . '>' . $this->nl();
-			foreach ($resolutionDict as $mediaWidth => $data) {
-				$sourceAttr = [];
-				$sources = [];
-				$sourceAttr['media'] = '(min-width:' . $mediaWidth . 'px)';
-				foreach ($data as $factor => $width) {
-					// are we not supporting hi res devices? then skip
-					if (floatval($factor) > 1 && empty($this->hires)) continue;
-					$src = $this->destFileName($width, $this->getResolutionMedia($factor, $sourceAttr['media']));
-					// use a key here, so we don't get a bloated thing like "foo-800.jpg 4x, foo-800.jpg 3x, foo-800.jpg 2x"
-					$key = $src;
-					if (floatval($factor) > 1) $src .= ' ' . $factor . 'x';
-					$sources[$key] = $src;
-				}
-				if ($this->destExt === 'webp' || $this->destExt === 'jp2') {
-					$sourceAttr['type'] = 'image/' . $this->destExt;
-				}
-				$attrName = $this->isLazy ? 'data-srcset' : 'srcset';
-				$sourceAttr[$attrName] = $this->nl() . implode(', ' . $this->nl(), array_values($sources));
-				$out .= '<source' . stringify_attributes($sourceAttr) . '>' . $this->nl();
-			}
-			// write the <img>
-			$out .= $this->renderPictureImg($mediaDict);
-			$out .= '</picture>' . $this->nl();
+			$out .= $this->renderPicture($mediaDict, $resolutionDict);
 		} // end <picture>
 
 		// close the wrappers
@@ -374,6 +344,41 @@ class DynamicImage
 		} else if ($resetFile) {
 			$this->resetFile();
 		}
+		return $out;
+	}
+
+	protected function renderPicture(array $mediaDict, array $resolutionDict): string
+	{
+		$out = '';
+		$pictureAttr = $this->elAttr;
+		// if we don't have a wrapper and the user wants the raio padding, use it here
+		if ($this->ratio && $this->ratioWrapper === NULL) {
+			$pictureAttr = $this->setRatio($pictureAttr);
+		}
+		$out .= '<picture' . stringify_attributes($pictureAttr) . '>' . $this->nl();
+		foreach ($resolutionDict as $mediaWidth => $data) {
+			$sourceAttr = [];
+			$sources = [];
+			$sourceAttr['media'] = '(min-width:' . $mediaWidth . 'px)';
+			foreach ($data as $factor => $width) {
+				// are we not supporting hi res devices? then skip
+				if (floatval($factor) > 1 && empty($this->hires)) continue;
+				$src = $this->destFileName($width, $this->getResolutionMedia($factor, $sourceAttr['media']));
+				// use a key here, so we don't get a bloated thing like "foo-800.jpg 4x, foo-800.jpg 3x, foo-800.jpg 2x"
+				$key = $src;
+				if (floatval($factor) > 1) $src .= ' ' . $factor . 'x';
+				$sources[$key] = $src;
+			}
+			if ($this->destExt === 'webp' || $this->destExt === 'jp2') {
+				$sourceAttr['type'] = 'image/' . $this->destExt;
+			}
+			$attrName = $this->isLazy ? 'data-srcset' : 'srcset';
+			$sourceAttr[$attrName] = $this->nl() . implode(', ' . $this->nl(), array_values($sources));
+			$out .= '<source' . stringify_attributes($sourceAttr) . '>' . $this->nl();
+		}
+		// write the <img>
+		$out .= $this->renderPictureImg($mediaDict);
+		$out .= '</picture>' . $this->nl();
 		return $out;
 	}
 
@@ -566,7 +571,6 @@ class DynamicImage
 	/*
 		Takes an array from imgMediaDict() and creates an array that can be used
 		to create 'srcset' and/or 'sizes' sttributes for <img> or <src>.
-		$maxSize value can be a resolution (1-10) or a pixel width (>10), or NULL (image source width)
 		Input: [1200=>190, 992=>480, 768=>360, 0=>450] Output: 
 		[
 			// media	=> [factor=>imageWidth, ...]
@@ -576,10 +580,11 @@ class DynamicImage
 		]
 	*/
 
-	protected function resolutionDict(array $imgMediaDict, int $srcMaxWidth, int $maxSize = NULL): array
+	protected function resolutionDict(array $imgMediaDict, int $srcMaxWidth): array
 	{
-
 		// figure out our max width and max resolution
+		// $maxSize value can be a resolution (1-10) or a pixel width (>10), or NULL (image source width)
+		$maxSize = ($this->hires === static::HIRES_SOURCE) ? $this->srcWidth : $this->hires;
 		$maxPx = PHP_INT_MAX; // used for min() operations
 		$maxResolution = $this->config->defaultMaxResolution ?? 1;
 		if ($maxSize !== NULL && $maxSize <= 10) {
