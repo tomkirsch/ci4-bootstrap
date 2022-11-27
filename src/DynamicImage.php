@@ -393,8 +393,12 @@ class DynamicImage
 		// lazyload
 		if ($this->isLazy) {
 			$imgAttr = $this->ensureAttr('class', 'lazyload', $imgAttr);
-			$imgAttr['data-src'] = $imgAttr['src'];
-			unset($imgAttr['src']);
+			// never lazy load inlined image data
+			$isInline = substr($imgAttr["src"], 0, 5) === "data:";
+			if ($this->lpiqIsOwnImg || !$isInline) {
+				$imgAttr['data-src'] = $imgAttr['src'];
+				unset($imgAttr['src']);
+			}
 		}
 		$out .= '<img ' . stringify_attributes($imgAttr) . '>' . $this->nl();
 		return $out;
