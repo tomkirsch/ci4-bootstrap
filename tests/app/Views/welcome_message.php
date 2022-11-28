@@ -197,7 +197,7 @@ $debug = FALSE;
 					->dynamicImage($file)
 					->debug($debug)
 					->cols('col-6')
-					->ratio(TRUE, FALSE, 'ratiobox fadebox') // add fadebox class for css transition & positioning
+					->ratio(TRUE, [], 'ratiobox fadebox') // add fadebox class for css transition & positioning
 					->lazy(TRUE)
 					->lqip(100, [], TRUE) // lqip must be a separate <img> element
 					->element('img', ['alt' => 'A cute kitten', 'class' => 'img-fluid']) // fade transition won't work for <picture>!
@@ -209,10 +209,10 @@ $debug = FALSE;
 					->dynamicImage($file)
 					->debug($debug)
 					->cols('col-6')
-					->ratio(TRUE, FALSE, 'ratiobox fadebox') // add fadebox class for css transition & positioning
+					->ratio(TRUE, [], 'ratiobox fadebox') // add fadebox class for css transition & positioning
 					->lazy(TRUE)
 					->lqip('#FF0000', [], TRUE) // lqip must be a separate <img> element
-					->element('img', ['alt' => 'A cute kitten', 'class' => 'img-fluid']) // fade transition won't work for <picture>!
+					->element('picture', ['alt' => 'A cute kitten', 'class' => 'img-fluid']) // fade transition won't work for <picture>!
 					->render();
 				?>
 			</div>

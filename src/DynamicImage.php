@@ -220,7 +220,6 @@ class DynamicImage
 		$this->lpiqIsOwnImg = $lpiqIsOwnImg;
 		if ($this->lpiqIsOwnImg) {
 			$this->lazy(TRUE);
-			$this->element('img');
 		}
 		return $this;
 	}
@@ -256,7 +255,6 @@ class DynamicImage
 	{
 		if (empty($this->colClasses)) throw new \Exception("You must call DynamicImage::cols()");
 		if (empty($this->src)) throw new \Exception("You must call DynamicImage::withFile()");
-		if ($this->el === 'picture' && $this->lpiqIsOwnImg) throw new \Exception("The element must be 'img' if LQIP is it's own element (not a 'picture')");
 		if (empty($this->el)) $this->el = 'img'; //default to something
 		$out = $this->nl();
 
@@ -327,8 +325,9 @@ class DynamicImage
 			// <img> with srcset
 			$out .= $this->renderSrcsetImg($mediaDict, $resolutionDict);
 		} else {
+			// <picture> with <source>s
 			$out .= $this->renderPicture($mediaDict, $resolutionDict);
-		} // end <picture>
+		}
 
 		// close the wrappers
 		$out .= str_repeat('</div>' . $this->nl(), $wrapCount);
@@ -355,6 +354,10 @@ class DynamicImage
 		if ($this->ratio && $this->ratioWrapper === NULL) {
 			$pictureAttr = $this->setRatio($pictureAttr);
 		}
+		// LQIP outside of <picture>
+		if ($this->lpiqIsOwnImg) {
+			$out .= '<img ' . stringify_attributes($this->getLqipAttr($mediaDict)) . '>' . $this->nl();
+		}
 		$out .= '<picture' . stringify_attributes($pictureAttr) . '>' . $this->nl();
 		foreach ($resolutionDict as $mediaWidth => $data) {
 			$sourceAttr = [];
@@ -379,6 +382,7 @@ class DynamicImage
 		// write the <img>
 		$out .= $this->renderPictureImg($mediaDict);
 		$out .= '</picture>' . $this->nl();
+
 		return $out;
 	}
 
@@ -393,11 +397,16 @@ class DynamicImage
 		// lazyload
 		if ($this->isLazy) {
 			$imgAttr = $this->ensureAttr('class', 'lazyload', $imgAttr);
-			// never lazy load inlined image data
-			$isInline = substr($imgAttr["src"], 0, 5) === "data:";
-			if ($this->lpiqIsOwnImg || !$isInline) {
-				$imgAttr['data-src'] = $imgAttr['src'];
-				unset($imgAttr['src']);
+			// is LQIP it's own image? then set the picture img to a transparent pixel
+			if ($this->lpiqIsOwnImg) {
+				$imgAttr['src'] = $this->pixel64();
+			} else {
+				// never lazy load inlined image data
+				$isInline = substr($imgAttr["src"], 0, 5) === "data:";
+				if (!$isInline) {
+					$imgAttr['data-src'] = $imgAttr['src'];
+					unset($imgAttr['src']);
+				}
 			}
 		}
 		$out .= '<img ' . stringify_attributes($imgAttr) . '>' . $this->nl();
