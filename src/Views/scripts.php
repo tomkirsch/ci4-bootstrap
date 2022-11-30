@@ -4,3 +4,10 @@
         if (el) el.classList.add("dyn_lazyloaded");
     });
 </script>
+<noscript>
+    <style type="text/css">
+        [data-dyn_lqip="separate"] {
+            opacity: 0;
+        }
+    </style>
+</noscript>
