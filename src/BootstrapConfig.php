@@ -87,19 +87,9 @@ class BootstrapConfig extends BaseConfig
 	public $defaultLqip = 'xs';
 
 	/**
-	 * DynamicImage - use padding-bottom hack by default 
+	 * DynamicImage - use padding hack by default 
 	 */
-	public $defaultUseRatio = TRUE;
-
-	/**
-	 * DynamicImage - class name for padding hack 
-	 */
-	public $defaultRatioPaddingClass = 'ratiobox';
-
-	/**
-	 * DynamicImage - class name for cropping to a ratio (overflow:hidden) 
-	 */
-	public $defaultRatioCropClass = 'ratio-crop';
+	public $defaultUseRatio = FALSE;
 
 	/**
 	 * DynamicImage - maximum supported resolution factor (2x, 3x, etc) 

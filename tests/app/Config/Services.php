@@ -4,6 +4,7 @@ namespace Config;
 
 use CodeIgniter\Config\BaseService;
 use Tomkirsch\Bootstrap\BootstrapConfig;
+use Tomkirsch\Bootstrap\Bootstrap;
 
 /**
  * Services Configuration file.
@@ -20,11 +21,11 @@ use Tomkirsch\Bootstrap\BootstrapConfig;
  */
 class Services extends BaseService
 {
-	public static function bootstrap($getShared = true, $config = NULL)
+	public static function bootstrap($getShared = true, $config = NULL): Bootstrap
 	{
 		$config = $config ?? new BootstrapConfig();
 		$config->prettyPrint = TRUE;
-		return $getShared ? static::getSharedInstance('bootstrap') : new \Tomkirsch\Bootstrap\Bootstrap($config);
+		return $getShared ? static::getSharedInstance('bootstrap') : new Bootstrap($config);
 	}
 
 	// public static function example($getShared = true)

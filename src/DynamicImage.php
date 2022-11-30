@@ -48,7 +48,9 @@ class DynamicImage
 	protected $el;
 	protected $elAttr;
 	protected $imgAttr;
-	protected $wrapperAttr; // attributes for a wrapper div to be placed around the element
+	protected $colClassString; // class attribute for the col wrapper
+	protected $colWrapperAttr; // attributes for a wrapper div to be placed around the element
+	protected $ratioWrapperAttr; // attributes for a wrapper div to be placed around the element
 	protected $src; // source path+filename without ext
 	protected $srcExt; // no dot
 	protected $dest; // destination path+filename
@@ -59,15 +61,15 @@ class DynamicImage
 	protected $lqip; // string source/command
 	protected $lqipAttr;
 	protected $lpiqIsOwnImg;
-	protected $colClasses;
+	protected $colClasses = [];
 	protected $hires;
 	protected $resolutionStep;
 	protected $isLazy;
 	protected $ratio;
-	protected $ratioPaddingClass;
-	protected $ratioCropClass;
-	protected $ratioWrapper;
+	protected $ratioCrop;
 	protected $fileList;
+	protected $wrapCount = 0;
+	protected $alt;
 
 	public function __construct(?BootstrapConfig $config = NULL)
 	{
@@ -92,10 +94,8 @@ class DynamicImage
 		$this->hires = $this->config->defaultHires ?? static::HIRES_SOURCE;
 		$this->resolutionStep = $this->config->defaultResolutionStep ?? 1;
 		$this->lqip = $this->config->defaultLqip ?? NULL;
-		$this->ratioPaddingClass = $this->config->defaultRatioPaddingClass ?? NULL;
-		$this->ratioCropClass = $this->config->defaultRatioCropClass ?? NULL;
 		$this->ratio = $this->config->defaultUseRatio ?? FALSE;
-		$this->ratioWrapper = NULL;
+		$this->ratioWrapperAttr = NULL;
 		return $this;
 	}
 
@@ -105,7 +105,7 @@ class DynamicImage
 	public function resetFile()
 	{
 		// these will almost always be different
-		foreach (['src', 'srcExt', 'dest', 'destExt', 'srcWidth', 'srcHeight',] as $prop) {
+		foreach (['src', 'srcExt', 'dest', 'destExt', 'srcWidth', 'srcHeight', 'alt'] as $prop) {
 			$this->$prop = NULL;
 		}
 		$this->fileList = [];
@@ -125,13 +125,13 @@ class DynamicImage
 	 *  Sets the source file to read; $dest can be used to dynamically rename the file; $query can pass a query string to the dest filename string
 	 * 
 	 * @param string $src Source file
+	 * @param string|null $alt The alt attribute for the <img>. If one is set in element(), it will override this value.
 	 * @param string|null $dest Destination (public-facing file, possibly rewritten with .htaccess)
 	 * @param string|array|null $query GET parameters to append to the destination
 	 */
-	public function withFile(string $src, ?string $dest = NULL, $query = NULL)
+	public function withFile(string $src, ?string $alt = NULL, ?string $dest = NULL, $query = NULL)
 	{
 		// remove ext from filename(s)
-		$parts = explode('.', $src);
 		list($this->src, $this->srcExt) = $this->stripExt($src);
 		if ($dest) {
 			list($this->dest, $this->destExt) = $this->stripExt($dest);
@@ -140,6 +140,7 @@ class DynamicImage
 			$this->destExt = $this->srcExt;
 		}
 		$this->destQuery = $query;
+		$this->alt = $alt;
 		return $this;
 	}
 
@@ -155,34 +156,40 @@ class DynamicImage
 
 	/**
 	 * Tell the library what col-* classes you'll be using. If $wrapperAttr is set, a wrapper div will be automagically be printed with the passed col classes
-	 * @param string|array|null $cols The column names (ex "col-md-5 col-lg-2")
-	 * @param array|null $wrapperAttr Attributes to add to the wrapper
+	 * @param string|array|null $colClasses The column names (ex "col-md-5 col-lg-2")
+	 * @param array|null $wrapperAttr If not NULL, a column wrapper element will automatically be added with the col classes
 	 */
-	public function cols($cols = NULL, ?array $wrapperAttr = NULL)
+	public function cols($colClasses = NULL, ?array $wrapperAttr = NULL)
 	{
-		$this->colClasses = ['col-12'];
-		if (!empty($cols)) {
-			$this->colClasses = is_string($cols) ? explode(' ', $cols) : $cols;
+		$this->colClassString = $colClasses ?? "";
+		if (empty($colClasses)) {
+			$colClasses = [];
+		} else {
+			$colClasses = is_string($colClasses) ? explode(' ', $colClasses) : $colClasses;
+			$colClasses = array_filter($colClasses, function ($className) {
+				return (bool) stristr($className, 'col-');
+			});
 		}
+		$this->colClasses = array_merge(['col-xs-12'], $colClasses);
 		// always sort the classes for the caching mechanism
 		asort($this->colClasses);
 		$this->colClasses = array_unique($this->colClasses);
-		$this->wrapperAttr = $wrapperAttr;
+		$this->colWrapperAttr = $wrapperAttr;
 		return $this;
 	}
 
 	/**
-	 * Sets the padding-bottom on the <picture>
+	 * Sets the ratio
 	 * 
-	 * @param bool|float $value FALSE will disable ratio padding, TRUE will use the image's original ratio. You can pass a float too, like (9/16) for 16:9
+	 * @param bool|string|float $value FALSE will disable ratio padding, TRUE will use the image's original ratio. Strings like "16:9" or "16/9" work as well.
+	 * @param bool $crop Crop the image inside the ratio container. If FALSE, the image will scale down and be centered
 	 * @param bool|array|null $wrapperAttr Attributes to add to the ratio wrapper html
-	 * @param string|null $className Useful for when you have common ratio padding classes, like .square or .sixteenbynine
 	 */
-	public function ratio($value, $wrapperAttr = NULL, ?string $className = NULL)
+	public function ratio($value, bool $ratioCrop = TRUE, $wrapperAttr = NULL)
 	{
 		$this->ratio = $value;
-		$this->ratioWrapper = ($wrapperAttr === TRUE) ? [] : $wrapperAttr;
-		if ($className) $this->ratioPaddingClass = $className;
+		$this->ratioCrop = $ratioCrop;
+		$this->ratioWrapperAttr = ($wrapperAttr === TRUE) ? [] : $wrapperAttr;
 		return $this;
 	}
 
@@ -231,7 +238,7 @@ class DynamicImage
 	 * @param array $attr HTML attributes to set on the nested <img> element (only valid if the element is a <picture>)
 	 */
 	// set the desired element (img or picture), with optional attributes
-	public function element(string $value, array $attr = [], array $imgAttr = [])
+	public function element(string $value, array $elAttr = [], array $imgAttr = [])
 	{
 		switch ($value) {
 			case 'img':
@@ -241,7 +248,7 @@ class DynamicImage
 			default:
 				throw new \Exception("Unknown element: $value");
 		}
-		$this->elAttr = $attr;
+		$this->elAttr = $elAttr;
 		$this->imgAttr = $imgAttr;
 		return $this;
 	}
@@ -256,17 +263,15 @@ class DynamicImage
 		if (empty($this->colClasses)) throw new \Exception("You must call DynamicImage::cols()");
 		if (empty($this->src)) throw new \Exception("You must call DynamicImage::withFile()");
 		if (empty($this->el)) $this->el = 'img'; //default to something
+
+		$this->wrapCount = 0;
 		$out = $this->nl();
 
 		// do we not have an image size? then we need to call getimagesize()
-		if (!$this->srcWidth || !$this->srcHeight) {
-			$size = getimagesize($this->src . '.' . $this->srcExt);
-			if (!$size) throw new \Exception("Cannot read image size for $this->src.$this->srcExt");
-			list($this->srcWidth, $this->srcHeight) = $size;
-		}
+		$this->ensureSourceDim();
 
 		// set the data-orientation attribute for CSS/JS
-		$this->elAttr['data-orientation'] = $this->getOrientation();
+		$this->elAttr['data-dyn_src_orient'] = $this->getOrientation();
 
 		// check cache to avoid recalculating everything in loops and such
 		$cacheKey = implode('', $this->colClasses);
@@ -277,60 +282,31 @@ class DynamicImage
 			// write cache
 			$this->setMediaCache($cacheKey, $mediaDict);
 		}
-		// are we using a custom ratio that is larger than our own ratio? then offset the container widths since it will be "zoomed in" behind the crop
-		$myRatio = $this->getRatio();
-		if ($this->ratio && $this->ratio !== TRUE && $myRatio < $this->ratio) {
-			foreach ($mediaDict as $media => $width) {
-				$mediaDict[$media] = $width * ($this->ratio + $myRatio);
+
+		// are we using a custom ratio that is larger than our own ratio? then offset the container widths since it will be "zoomed in" behind the crop, and we want the correct-sized image file
+		if ($this->ratio && $this->ratio !== TRUE) {
+			$sourceRatio = $this->sourceRatio();
+			$containerRatio = $this->parseRatio($this->ratio);
+			if ($sourceRatio < $containerRatio) {
+				foreach ($mediaDict as $media => $width) {
+					$mediaDict[$media] = $width * ($containerRatio + $sourceRatio);
+				}
 			}
 		}
 		// get resolution dictionary
 		$resolutionDict = $this->resolutionDict($mediaDict, $this->srcWidth);
 
-		// make wrappers?
-		$wrapCount = 0;
-		$wrapperAttr = $this->wrapperAttr;
-		if ($wrapperAttr !== NULL) {
-			// add col classes to the wrapper
-			$colString = implode(' ', $this->colClasses);
-			$wrapperAttr = $this->ensureAttr('class', $colString, $wrapperAttr);
-			// if a ratio wrapper wasn't specified, apply the ratio to this wrapper element
-			if ($this->ratio && $this->ratioWrapper === NULL) {
-				$wrapperAttr = $this->setRatio($wrapperAttr);
-			}
-			$out .= '<div' . stringify_attributes($wrapperAttr) . '>' . $this->nl();
-			$wrapCount++;
-		}
-		// if it's an <img> with ratio padding, assume we need the ratioWrapper
-		if ($this->el === 'img' && $this->ratio) $this->ratioWrapper = [];
-		// write the ratio wrapper
-		if ($this->ratio && $this->ratioWrapper !== NULL) {
-			// is it a custom ratio? then we'll need to wrap it with a div with THAT padding to crop it
-			if ($this->ratio !== TRUE) {
-				$pad = $this->ratio * 100;
-				$ratioAttr = $this->ensureAttr('style', "padding-bottom:$pad%;", []);
-				if ($this->ratioCropClass) {
-					$ratioAttr = $this->ensureAttr('class', $this->ratioCropClass, $ratioAttr);
-				}
-				$out .= '<div' . stringify_attributes($ratioAttr) . '>' . $this->nl();
-				$wrapCount++;
-			}
-			$attr = $this->setRatio($this->ratioWrapper);
-			$out .= '<div' . stringify_attributes($attr) . '>' . $this->nl();
-			$wrapCount++;
-		}
+		// make col wrapper
+		$out .= $this->renderColWrapper();
 
-		// start writing the actual elements
-		if ($this->el === 'img') {
-			// <img> with srcset
-			$out .= $this->renderSrcsetImg($mediaDict, $resolutionDict);
-		} else {
-			// <picture> with <source>s
-			$out .= $this->renderPicture($mediaDict, $resolutionDict);
-		}
+		// make ratio wrapper(s)
+		$out .= $this->renderRatioWrapper();
+
+		// elements
+		$out .= $this->el === 'img' ? $this->renderSrcsetImg($mediaDict, $resolutionDict) : $this->renderPicture($mediaDict, $resolutionDict);
 
 		// close the wrappers
-		$out .= str_repeat('</div>' . $this->nl(), $wrapCount);
+		$out .= str_repeat('</div>' . $this->nl(), $this->wrapCount);
 
 		if ($this->mediaDebug) {
 			$out = '';
@@ -350,14 +326,11 @@ class DynamicImage
 	{
 		$out = '';
 		$pictureAttr = $this->elAttr;
-		// if we don't have a wrapper and the user wants the raio padding, use it here
-		if ($this->ratio && $this->ratioWrapper === NULL) {
-			$pictureAttr = $this->setRatio($pictureAttr);
-		}
-		// LQIP outside of <picture>
-		if ($this->lpiqIsOwnImg) {
-			$out .= '<img ' . stringify_attributes($this->getLqipAttr($mediaDict)) . '>' . $this->nl();
-		}
+
+		// LQIP outside of <picture>.. we place it first, so it's behind the picture
+		$out .= $this->renderLqipOwnImg($mediaDict);
+
+		// picture
 		$out .= '<picture' . stringify_attributes($pictureAttr) . '>' . $this->nl();
 		foreach ($resolutionDict as $mediaWidth => $data) {
 			$sourceAttr = [];
@@ -382,17 +355,21 @@ class DynamicImage
 		// write the <img>
 		$out .= $this->renderPictureImg($mediaDict);
 		$out .= '</picture>' . $this->nl();
-
 		return $out;
+	}
+
+	protected function renderLqipOwnImg(array $mediaDict): string
+	{
+		if (!$this->lpiqIsOwnImg) return "";
+		return '<img ' . stringify_attributes($this->getLqipAttr($mediaDict, TRUE)) . '>' . $this->nl();
 	}
 
 	// render the <img> element(s) for a <picture>
 	protected function renderPictureImg(array $mediaDict): string
 	{
 		$out = '';
-		$imgAttr = $this->imgAttr;
-		$lqipAttr = $this->getLqipAttr($mediaDict); // set the 'src'
-		$imgAttr = array_merge($lqipAttr, $imgAttr);
+		$imgAttr = array_merge($this->getLqipAttr($mediaDict, FALSE), $this->imgAttr);
+		$imgAttr["alt"] ??= $this->alt ?? "";
 
 		// lazyload
 		if ($this->isLazy) {
@@ -448,13 +425,13 @@ class DynamicImage
 			$sources[$file] = $src; // use a key here, so we don't get a bloated thing like "foo-800.jpg 4x, foo-800.jpg 3x, foo-800.jpg 2x"
 		}
 
-		$imgAttr = $this->elAttr;
-		$lqipAttr = $this->getLqipAttr($mediaDict); // set the 'src'
+		$imgAttr = array_merge($this->elAttr, $this->imgAttr);
+		$imgAttr["alt"] = $this->elAttr["alt"] ?? $this->alt ?? "";
+
 		if ($this->lpiqIsOwnImg) {
-			$out .= '<img ' . stringify_attributes($lqipAttr) . '>' . $this->nl();
-			$imgAttr = $this->ensureAttr('alt', '', $imgAttr);
+			$out .= '<img ' . stringify_attributes($this->getLqipAttr($mediaDict, TRUE)) . '>' . $this->nl();
 		} else {
-			$imgAttr = array_merge($lqipAttr, $imgAttr);
+			$imgAttr = array_merge($this->getLqipAttr($mediaDict, FALSE), $imgAttr);
 		}
 		// lazyload class
 		if ($this->isLazy) {
@@ -471,10 +448,66 @@ class DynamicImage
 		return $out;
 	}
 
-	// set the src attribute of LQIP. This could also be the base <img> element
-	protected function getLqipAttr(array $mediaDict): array
+	protected function renderRatioWrapper(): string
 	{
-		$attr = $this->lqipAttr;
+		// is ratio NULL/FALSE? get out.
+		if (empty($this->ratio)) return "";
+
+		$this->ratioWrapperAttr ??= [];
+		$containerRatio = $this->parseRatio($this->ratio);
+		$sourceRatio = $this->sourceRatio();
+		$out = "";
+
+		$ratioWrapperAttr = $this->getRatioAttr($this->ratioWrapperAttr);
+		$ratioWrapperAttr["dyn_wrapper_orient"] = $this->parseRatio($this->ratio) > 1 ? "portrait" : "landscape";
+		$fit = "contain";
+		$cropAttr = NULL;
+		// is the ratio larger than the source image? write the cropping div
+		if ($this->ratioCrop && $containerRatio > $sourceRatio) {
+			$fit = "crop";
+			$orientation = $this->getOrientation();
+			$cropAttr = $this->getRatioAttr();
+			$containerRatio *= 100;
+			$sourceRatio *= 100;
+			if ($containerRatio === $sourceRatio) {
+				$cropAttr["style"] .= ";padding-bottom:$sourceRatio%";
+			} else {
+				if ($sourceRatio < $containerRatio) {
+					$sourceRatio = (100 * 100) / $sourceRatio;
+				}
+				$ratioSide = ($orientation === 'landscape') ? 'right' : 'bottom';
+				$otherSide = ($orientation === 'landscape') ? 'bottom' : 'right';
+				$cropAttr["style"] .= ";padding-$otherSide:$containerRatio%;padding-$ratioSide:$sourceRatio%";
+			}
+		}
+
+		$out .= '<div data-dyn_fit="' . $fit . '"' . stringify_attributes($ratioWrapperAttr) . '>' . $this->nl();
+		$this->wrapCount++;
+		if ($cropAttr) {
+			$out .= '<div data-dyn_crop="' . $this->srcWidth . '/' . $this->srcHeight . '" ' . stringify_attributes($cropAttr) . '>' . $this->nl();
+			$this->wrapCount++;
+		}
+
+		return $out;
+	}
+
+	protected function renderColWrapper(): string
+	{
+		$wrapperAttr = $this->colWrapperAttr;
+		if ($wrapperAttr === NULL) return "";
+		// add the string supplied in cols() call
+		$wrapperAttr = $this->ensureAttr('class', $this->colClassString, $wrapperAttr);
+		$this->wrapCount++;
+		return '<div data-dyn_wrapper="col" ' . stringify_attributes($wrapperAttr) . '>' . $this->nl();
+	}
+
+	/**
+	 *  Set the src and alt attributes of LQIP <img>
+	 */
+	protected function getLqipAttr(array $mediaDict, bool $isOwnImg): array
+	{
+		$attr = $isOwnImg ? [] : $this->lqipAttr;
+		$attr["data-dyn_lqip"] = $isOwnImg ? "separate" : "integrated";
 		switch ($this->lqip) {
 			case static::LQIP_XS:
 				// use xs container width
@@ -502,8 +535,6 @@ class DynamicImage
 					$attr['src'] = $this->destFileName($width);
 				}
 		} // endswitch
-		// ensure we have 'alt'
-		$attr = $this->ensureAttr('alt', '', $attr);
 		return $attr;
 	}
 
@@ -632,17 +663,18 @@ class DynamicImage
 		return $resolutionDict;
 	}
 
-	// squre/portrait/landscape
+	/**
+	 * Returns "portrait" or "lanscape". Square images are landscape.
+	 */
 	public function getOrientation(): string
 	{
-		if (empty($this->srcWidth) || empty($this->srcHeight)) throw new \Exception("Cannot get orientation of source file");
-		$orientation = 'square';
-		if ($this->srcWidth > $this->srcHeight) {
-			$orientation = 'landscape';
-		} else if ($this->srcWidth < $this->srcHeight) {
-			$orientation = 'portrait';
-		}
-		return $orientation;
+		$this->ensureSourceDim();
+		return $this->orientation($this->srcWidth, $this->srcHeight);
+	}
+
+	protected function orientation(int $width, int $height): string
+	{
+		return $height > $width ? "portrait" : "landscape";
 	}
 
 	protected function getMediaCache(string $key)
@@ -655,34 +687,40 @@ class DynamicImage
 		$this->mediaCache[$key] = $value;
 	}
 
-	protected function setRatio(array $attr = []): array
+	protected function getRatioAttr(array $attr = []): array
 	{
-		$attr = $this->ensureAttr('class', $this->ratioPaddingClass, $attr);
-
-		$orientation = $this->getOrientation();
-		$myRatio = $this->getRatio();
-		$containerRatio = ($this->ratio === TRUE) ? round($this->srcHeight / $this->srcWidth, 5) : $this->ratio;
-		$myRatio *= 100;
-		$containerRatio *= 100;
-		if ($containerRatio === $myRatio) {
-			$style = "padding-bottom:$myRatio%;";
+		if ($this->ratio === TRUE) {
+			// use source image ratio
+			$style = "--aspect-ratio:$this->srcWidth/$this->srcHeight";
 		} else {
-			if ($myRatio < $containerRatio) {
-				$myRatio = (100 * 100) / $myRatio;
-			}
-			$ratioSide = ($orientation === 'landscape') ? 'right' : 'bottom';
-			$otherSide = ($orientation === 'landscape') ? 'bottom' : 'right';
-			$style = "padding-$otherSide:$containerRatio%;padding-$ratioSide:$myRatio%;";
+			// 16/9 or 16:9 or 1.775
+			$style = "--aspect-ratio:$this->ratio";
 		}
 		return $this->ensureAttr('style', $style, $attr);
 	}
 
-	protected function getRatio()
+	public function sourceRatio(): float
 	{
+		$this->ensureSourceDim();
 		return round($this->srcHeight / $this->srcWidth, 5);
 	}
 
-	// ensure attributes are an array with the given class(es)
+	protected function parseRatio($ratio): ?float
+	{
+		if (is_string($ratio)) {
+			$matches = [];
+			if (preg_match('/^(\d+)[:\/](\d+)$/', $ratio, $matches)) {
+				array_shift($matches);
+				list($width, $height) = $matches;
+				return round($height / $width, 5);
+			}
+		}
+		return floatval($ratio);
+	}
+
+	/**
+	 * Ensures the array key is set, and if already set, it adds the attributes. Also works with inline styles.
+	 */
 	protected function ensureAttr(string $attrName, string $attrValue, $attr = NULL): array
 	{
 		if (empty($attr)) {
@@ -722,6 +760,15 @@ class DynamicImage
 			}
 		}
 		return $file . $q;
+	}
+
+	protected function ensureSourceDim()
+	{
+		if (!$this->srcWidth || !$this->srcHeight) {
+			$size = getimagesize($this->src . '.' . $this->srcExt);
+			if (!$size) throw new \Exception("Cannot read image size for $this->src.$this->srcExt");
+			list($this->srcWidth, $this->srcHeight) = $size;
+		}
 	}
 
 	protected function stripExt(string $src): array

@@ -39,13 +39,13 @@ class Bootstrap
 	/**
 	 * Fetch the shared DynamicImage class. See class for usage.
 	 */
-	public function dynamicImage(?string $src = NULL, ?string $dest = NULL, $query = NULL): DynamicImage
+	public function dynamicImage(?string $src = NULL, string $alt = "", ?string $dest = NULL, $query = NULL): DynamicImage
 	{
 		if (!$this->dynamicImage) {
 			$this->dynamicImage = new DynamicImage($this->config);
 		}
 		if ($src) {
-			$this->dynamicImage->withFile($src, $dest, $query);
+			$this->dynamicImage->withFile($src, $alt, $dest, $query);
 		}
 		return $this->dynamicImage;
 	}
