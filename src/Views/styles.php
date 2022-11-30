@@ -1,4 +1,4 @@
-<?php if ($withTag) : ?>
+<?php if (!empty($withTag)) : ?>
     <style type="text/css">
         <?php endif ?>[style*="--aspect-ratio"]> :first-child,
         [style*="--aspect-ratio"]>picture {
@@ -76,6 +76,6 @@
             opacity: 0;
         }
 
-        <?php if ($withTag) : ?>
+        <?php if (!empty($withTag)) : ?>
     </style>
 <?php endif ?>
