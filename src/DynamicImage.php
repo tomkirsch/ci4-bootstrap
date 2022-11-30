@@ -170,7 +170,8 @@ class DynamicImage
 				return (bool) stristr($className, 'col-');
 			});
 		}
-		$this->colClasses = array_merge(['col-xs-12'], $colClasses);
+		$this->checkColClasses(); // set the col-xs-12 class as the basis
+		$this->colClasses = array_merge($this->colClasses, $colClasses);
 		// always sort the classes for the caching mechanism
 		asort($this->colClasses);
 		$this->colClasses = array_unique($this->colClasses);
@@ -260,9 +261,9 @@ class DynamicImage
 	 */
 	public function render(bool $resetAll = TRUE, bool $resetFile = TRUE): string
 	{
-		if (empty($this->colClasses)) throw new \Exception("You must call DynamicImage::cols()");
 		if (empty($this->src)) throw new \Exception("You must call DynamicImage::withFile()");
 		if (empty($this->el)) $this->el = 'img'; //default to something
+		$this->checkColClasses(); // ensure there's at least one in there
 
 		$this->wrapCount = 0;
 		$out = $this->nl();
@@ -768,6 +769,13 @@ class DynamicImage
 			$size = getimagesize($this->src . '.' . $this->srcExt);
 			if (!$size) throw new \Exception("Cannot read image size for $this->src.$this->srcExt");
 			list($this->srcWidth, $this->srcHeight) = $size;
+		}
+	}
+
+	protected function checkColClasses()
+	{
+		if (empty($this->colClasses)) {
+			$this->colClasses[] = 'col-xs-12';
 		}
 	}
 
