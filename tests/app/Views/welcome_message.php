@@ -129,14 +129,14 @@ $debug = FALSE;
 		<h3>Aspect Ratio 1:1 - with &amp; without cropping</h3>
 		<div class="row">
 			<?= \Config\Services::bootstrap()
-				->dynamicImage($file, "kitties!")
+				->dynamicImage("kitten-portrait-src.jpg", "kitties!")
 				->debug($debug)
 				->cols("col-md-4", [])
 				->ratio(1, FALSE)
 				->render();
 			?>
 			<?= \Config\Services::bootstrap()
-				->dynamicImage($file, "kitties!")
+				->dynamicImage("kitten-portrait-src.jpg", "kitties!")
 				->debug($debug)
 				->cols("col-md-4", [])
 				->ratio(1, TRUE)

@@ -462,8 +462,8 @@ class DynamicImage
 		$ratioWrapperAttr["dyn_wrapper_orient"] = $this->parseRatio($this->ratio) > 1 ? "portrait" : "landscape";
 		$fit = "contain";
 		$cropAttr = NULL;
-		// is the ratio larger than the source image? write the cropping div
-		if ($this->ratioCrop && $containerRatio > $sourceRatio) {
+		// is the ratio different than the source image? write the cropping div, if ratioCrop is true
+		if ($this->ratioCrop && round($containerRatio, 4) !== round($sourceRatio, 4)) {
 			$fit = "crop";
 			$orientation = $this->getOrientation();
 			$cropAttr = $this->getRatioAttr();
