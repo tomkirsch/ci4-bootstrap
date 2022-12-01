@@ -62,6 +62,11 @@ class BootstrapConfig extends BaseConfig
 	}
 
 	/**
+	 * DynamicImage - Col gutter width in pixels
+	 */
+	public $defaultGutterWidth = 12;
+
+	/**
 	 * DynamicImage - number of columns in the grid 
 	 */
 	public $gridCols = 12;
@@ -77,9 +82,14 @@ class BootstrapConfig extends BaseConfig
 	public $defaultIsLazy = FALSE;
 
 	/**
-	 * DynamicImage - Default size for hires
+	 * DynamicImage - Default size for hires. Use "source" for the source image's width, or a pixel value to restrict viewing
 	 */
-	public $defaultHires = 'source';
+	public $defaultHiresWidth = 'source';
+
+	/**
+	 * DynamicImage - Use a pixel value to restrict image height
+	 */
+	public $defaultHiresHeight = 'source';
 
 	/**
 	 * DynamicImage - default LQIP (low quality image placeholder) 
@@ -97,7 +107,8 @@ class BootstrapConfig extends BaseConfig
 	public $defaultMaxResolution = 2;
 
 	/**
-	 * DynamicImage - default resolution step to get from 1 to $maxResolutionFactor 
+	 * DynamicImage - default resolution step to get from 1 to $maxResolutionFactor.
+	 * A lower number will create more sources
 	 */
 	public $defaultResolutionStep = 0.5;
 

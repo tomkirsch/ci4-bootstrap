@@ -62,7 +62,9 @@ class DynamicImage
 	protected $lqipAttr;
 	protected $lpiqIsOwnImg;
 	protected $colClasses = [];
-	protected $hires;
+	protected $gutterWidth;
+	protected $hiresX;
+	protected $hiresY;
 	protected $resolutionStep;
 	protected $isLazy;
 	protected $ratio;
@@ -91,11 +93,14 @@ class DynamicImage
 		$this->lpiqIsOwnImg = NULL;
 		$this->el = $this->config->defaultElement ?? 'picture';
 		$this->isLazy = $this->config->defaultIsLazy ?? FALSE;
-		$this->hires = $this->config->defaultHires ?? static::HIRES_SOURCE;
+		$this->hiresX = $this->config->defaultHiresWidth ?? static::HIRES_SOURCE;
+		$this->hiresY = $this->config->defaultHiresHeight ?? static::HIRES_SOURCE;
 		$this->resolutionStep = $this->config->defaultResolutionStep ?? 1;
 		$this->lqip = $this->config->defaultLqip ?? NULL;
 		$this->ratio = $this->config->defaultUseRatio ?? FALSE;
 		$this->ratioWrapperAttr = NULL;
+		$this->gutterWidth = $this->config->defaultGutterWidth ?? 0;
+		$this->colClasses = [];
 		return $this;
 	}
 
@@ -159,23 +164,26 @@ class DynamicImage
 	 * @param string|array|null $colClasses The column names (ex "col-md-5 col-lg-2")
 	 * @param array|null $wrapperAttr If not NULL, a column wrapper element will automatically be added with the col classes
 	 */
-	public function cols($colClasses = NULL, ?array $wrapperAttr = NULL)
+	public function cols($colClasses = NULL, ?array $wrapperAttr = NULL, ?int $gutterWidth = NULL)
 	{
+		// record the original string so we can put it in the wrapper div
 		$this->colClassString = $colClasses ?? "";
 		if (empty($colClasses)) {
-			$colClasses = [];
+			$this->colClasses = [];
 		} else {
 			$colClasses = is_string($colClasses) ? explode(' ', $colClasses) : $colClasses;
-			$colClasses = array_filter($colClasses, function ($className) {
-				return (bool) stristr($className, 'col-');
-			});
+			foreach ($colClasses as $className) {
+				if ($className === "col") $className = "col-xs-12"; // make this explicit for our class
+				if (!preg_match('/^col-([a-z]+)/', $className)) continue; // not a col class
+				if (!preg_match('/^col-[a-z]+-\d+/', $className)) $className .= "-12"; // ex col-md. Assume the widest.
+				$this->colClasses[] = $className;
+			}
+			$this->colClasses = array_unique($this->colClasses);
+			// always sort the classes for the caching mechanism
+			asort($this->colClasses);
 		}
-		$this->checkColClasses(); // set the col-xs-12 class as the basis
-		$this->colClasses = array_merge($this->colClasses, $colClasses);
-		// always sort the classes for the caching mechanism
-		asort($this->colClasses);
-		$this->colClasses = array_unique($this->colClasses);
 		$this->colWrapperAttr = $wrapperAttr;
+		$this->gutterWidth = $gutterWidth ?? $this->gutterWidth ?? 0;
 		return $this;
 	}
 
@@ -205,13 +213,15 @@ class DynamicImage
 
 	/**
 	 * Enable support for high resolution images.
-	 * @param int|string|null $value Pass string 'source' to match the source image width, a scale factor (2-10), or pixel width to limit how large we want to display the image
+	 * @param int|string|null $xFactor Pass string 'source' to match the source image width, a scale factor (1-10), or pixel width to limit the image width. Null will disable retina sources.
+	 * @param int|string|null $yFactor Pass string 'source' to match the source image height or a pixel value. NULL not check any limits on the height
 	 * @param float|null $resolutionStep Determines how many steps we want to offer. For example, hires(2, 0.5) will generate 2x and 1.5x versions
 	 */
-	public function hires($value, float $resolutionStep = 1)
+	public function hires($xFactor, $yFactor = NULL, ?float $resolutionStep = NULL)
 	{
-		$this->hires = is_numeric($value) ? floatval($value) : $value;
-		$this->resolutionStep = $resolutionStep;
+		$this->hiresX = is_numeric($xFactor) ? floatval($xFactor) : $xFactor;
+		$this->hiresY = $yFactor;
+		$this->resolutionStep = $resolutionStep ?? $this->config->defaultResolutionStep;
 		return $this;
 	}
 
@@ -263,7 +273,6 @@ class DynamicImage
 	{
 		if (empty($this->src)) throw new \Exception("You must call DynamicImage::withFile()");
 		if (empty($this->el)) $this->el = 'img'; //default to something
-		$this->checkColClasses(); // ensure there's at least one in there
 
 		$this->wrapCount = 0;
 		$out = $this->nl();
@@ -339,7 +348,7 @@ class DynamicImage
 			$sourceAttr['media'] = '(min-width:' . $mediaWidth . 'px)';
 			foreach ($data as $factor => $width) {
 				// are we not supporting hi res devices? then skip
-				if (floatval($factor) > 1 && empty($this->hires)) continue;
+				if (floatval($factor) > 1 && empty($this->hiresX)) continue;
 				$src = $this->destFileName($width, $this->getResolutionMedia($factor, $sourceAttr['media']));
 				// use a key here, so we don't get a bloated thing like "foo-800.jpg 4x, foo-800.jpg 3x, foo-800.jpg 2x"
 				$key = $src;
@@ -410,7 +419,7 @@ class DynamicImage
 		foreach ($factorWidths as $factor => $width) {
 			$mediaQuery = '(min-width:' . $width . 'px)';
 			$file = $this->destFileName($width, ($width === $minWidth) ? NULL : $mediaQuery);
-			if (empty($this->hires)) {
+			if (empty($this->hiresX)) {
 				// foo-800.jpg 800w, foo-400.jpg 400w, foo-100.jpg
 				$src = $file . ' ' . $width . 'w';
 				// (min-width: 860px) 800px
@@ -547,11 +556,9 @@ class DynamicImage
 	{
 		$colDict = [];
 		foreach ($colClasses as $colClass) {
-			$parts = explode('-', $colClass);
-			if (count($parts) < 2) continue;
-			$colSize = count($parts) === 3 ? $parts[1] : 'xs';
-			$colNum = count($parts) === 3 ? $parts[2] : $parts[1];
-			$colDict[$colNum] = $colSize;
+			$matches = [];
+			if (!preg_match('/^col-([a-z]+)-(\d+)/', $colClass, $matches)) continue;
+			$colDict[intval($matches[2])] = $matches[1];
 		}
 		// sort the dictionary by $colSize, from smallest bootstrap size to largest, so bigger cols overwrite mediaWidth keys generated by smaller ones
 		uasort($colDict, function (string $a, string $b) {
@@ -577,7 +584,7 @@ class DynamicImage
 			// pull media width from breakpoints, and image widths from containers
 			foreach ($this->config->containers() as $containerSize => $containerWidth) {
 				$mediaWidth = $this->config->breakpoint($containerSize);
-				$imgMediaDict[$mediaWidth] = $this->config->container($containerSize);
+				$imgMediaDict[$mediaWidth] = $this->config->container($containerSize) - ($this->gutterWidth * 2);
 			}
 		} else {
 			// col-* classes were indicated, so we must calculate the image widths
@@ -586,7 +593,7 @@ class DynamicImage
 					$fraction = $colNum / $this->config->gridCols; // divide by 12, or however many cols there are
 					if ($colSize === 'xs' || $this->config->container($colSize) <= $this->config->container($containerSize)) {
 						// this col is smaller or equal to the container we're looking at. process it.
-						$imageWidth = ceil($containerWidth * $fraction);
+						$imageWidth = ceil($containerWidth * $fraction) - ($this->gutterWidth * 2);
 						$mediaWidth = $this->config->breakpoint($containerSize);
 					} else {
 						// out of bounds/not needed
@@ -603,9 +610,9 @@ class DynamicImage
 			if (in_array('xs', $colDict)) {
 				$colNum = array_search('xs', $colDict);
 				$fraction = $colNum / $this->config->gridCols;
-				$imgMediaDict[0] = ceil($minContainer * $fraction);
+				$imgMediaDict[0] = ceil($minContainer * $fraction) - ($this->gutterWidth * 2);
 			} else {
-				$imgMediaDict[0] = $minContainer;
+				$imgMediaDict[0] = $minContainer - ($this->gutterWidth * 2);
 			}
 		}
 		// put our biggest media queries first
@@ -627,38 +634,32 @@ class DynamicImage
 
 	protected function resolutionDict(array $imgMediaDict, int $srcMaxWidth): array
 	{
-		// figure out our max width and max resolution
-		// $maxSize value can be a resolution (1-10) or a pixel width (>10), or NULL (image source width)
-		$maxSize = ($this->hires === static::HIRES_SOURCE) ? $this->srcWidth : $this->hires;
-		$maxPx = PHP_INT_MAX; // used for min() operations
 		$maxResolution = $this->config->defaultMaxResolution ?? 1;
-		if ($maxSize !== NULL && $maxSize <= 10) {
-			// assume its a resolution factor, not pixel width
-			$maxResolution = $maxSize;
-		} else if ($maxSize !== NULL && $maxSize > 10) {
-			// we were given a max pixel width to NEVER go over
-			$maxPx = $maxSize;
+		// figure out our max width
+		if (is_numeric($this->hiresX) && (float) $this->hiresX <= 10) {
+			// we were given a resolution, ensure maxWidth doesn't exceed orig image
+			$maxResolution = (float) $this->hiresX;
+			$maxWidth = min($this->srcWidth, $this->srcWidth * $maxResolution);
+		} else if (is_numeric($this->hiresX)) {
+			// we were given a hard px value
+			$maxWidth = min($this->srcWidth, (int) $this->hiresX);
+		} else {
+			$maxWidth = $this->srcWidth;
 		}
 		if ($maxResolution < 1) throw new \Exception("Invalid max resolution: $maxResolution");
+
+		$maxHeight = $this->hiresY === "source" ? $this->srcHeight : $this->hiresY;
+		if ($maxHeight !== NULL && !is_int($maxHeight)) throw new \Exception("Invalid hires height: $maxHeight");
+
 		$resolutionDict = [];
 		foreach ($imgMediaDict as $mediaWidth => $imageWidth) {
 			// loop through possible resolutions, highest first
 			for ($i = $maxResolution; $i >= 1; $i -= $this->resolutionStep) {
-				$hiresWidth = floor(min($maxPx, $imageWidth * $i)); // never go over a specified max width
-				if ($hiresWidth > $srcMaxWidth) {
-					// too big... but see if our original is bigger than the "normal" resolution. At least we can sample up.
-					if ($srcMaxWidth > $imageWidth) {
-						$w = min($maxPx, $srcMaxWidth); // never go over a specified max width
-						if (!isset($resolutionDict[$mediaWidth])) $resolutionDict[$mediaWidth] = [];
-						$resolutionDict[$mediaWidth][(string) $i] = $w;
-					} else {
-						// nada... don't add to srcset
-					}
-				} else {
-					// the high res width is acceptable to use
-					if (!isset($resolutionDict[$mediaWidth])) $resolutionDict[$mediaWidth] = [];
-					$resolutionDict[$mediaWidth][(string) $i] = $hiresWidth;
-				}
+				// calculate the final dimensions at this resolution, but limiting the width (and height if needed)
+				list($hiresWidth, $hiresHeight) = $this->reproportion(floor($imageWidth * $i), $maxHeight ?? 0);
+				if ($hiresWidth > $maxWidth) continue;
+				if (!isset($resolutionDict[$mediaWidth])) $resolutionDict[$mediaWidth] = [];
+				$resolutionDict[$mediaWidth][(string) $i] = $hiresWidth;
 			} // endfor
 		}
 		return $resolutionDict;
@@ -772,13 +773,6 @@ class DynamicImage
 		}
 	}
 
-	protected function checkColClasses()
-	{
-		if (empty($this->colClasses)) {
-			$this->colClasses[] = 'col-xs-12';
-		}
-	}
-
 	protected function stripExt(string $src): array
 	{
 		$parts = explode('.', $src);
@@ -830,5 +824,26 @@ class DynamicImage
 	protected function tab(): string
 	{
 		return $this->prettyPrint ? '	' : '';
+	}
+
+	protected function reproportion(int $width, int $height = 0, string $masterDim = 'auto'): array
+	{
+		if ($masterDim !== 'width' && $masterDim !== 'height') {
+			if ($width > 0 && $height > 0) {
+				$masterDim = ((($this->srcHeight / $this->srcWidth) - ($height / $width)) < 0) ? 'width' : 'height';
+			} else {
+				$masterDim = ($height === 0) ? 'width' : 'height';
+			}
+		} elseif (($masterDim === 'width' && $width === 0) || ($masterDim === 'height' && $height === 0)
+		) {
+			throw new \Exception("Invalid sizes passed");
+		}
+
+		if ($masterDim === 'width') {
+			$height = (int) floor($width * $this->srcHeight / $this->srcWidth);
+		} else {
+			$width = (int) floor($this->srcWidth * $height / $this->srcHeight);
+		}
+		return [$width, $height];
 	}
 }

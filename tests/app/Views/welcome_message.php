@@ -30,6 +30,10 @@ $debug = FALSE;
 			padding: 15px;
 		}
 
+		img {
+			max-width: 100%;
+		}
+
 		h3 {
 			font-size: 1rem;
 		}
@@ -71,7 +75,7 @@ $debug = FALSE;
 	<hr>
 	<div class="container mb-3">
 		<h3>Max Resolution: 1x</h3>
-		<?php foreach (['col', 'col-md-6 col-lg-4 col-xl-2'] as $cols) : ?>
+		<?php foreach (['col-xs-12', 'col-md-6 col-lg-4 col-xl-2'] as $cols) : ?>
 			<div class="row">
 				<?= \Config\Services::bootstrap()
 					->dynamicImage($file, "kitties!")
@@ -84,13 +88,13 @@ $debug = FALSE;
 		<?php endforeach; ?>
 		<hr>
 		<h3>Max Resolution: 2x, Step 0.5, Lazyload</h3>
-		<?php foreach (['col', 'col-md-6 col-lg-4 col-xl-2'] as $cols) : ?>
+		<?php foreach (['col-xs-12', 'col-md-6 col-lg-4 col-xl-2'] as $cols) : ?>
 			<div class="row">
 				<?= \Config\Services::bootstrap()
 					->dynamicImage($file, "kitties!")
 					->debug($debug)
 					->cols($cols, [])
-					->hires(2, 0.5)
+					->hires(2)
 					->lazy(TRUE)
 					->render();
 				?>
@@ -98,7 +102,7 @@ $debug = FALSE;
 		<?php endforeach; ?>
 		<hr>
 		<h3>Max Width: 800px (Max Resolution <?= config('Tomkirsch\Bootstrap\BootstrapConfig')->defaultMaxResolution ?>x)</h3>
-		<?php foreach (['col', 'col-md-6 col-lg-4 col-xl-2'] as $cols) : ?>
+		<?php foreach (['col-xs-12', 'col-md-6 col-lg-4 col-xl-2'] as $cols) : ?>
 			<div class="row">
 				<?= \Config\Services::bootstrap()
 					->dynamicImage($file, "kitties!")
