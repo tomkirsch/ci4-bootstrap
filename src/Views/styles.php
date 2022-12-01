@@ -81,7 +81,7 @@
 
         .dyn_fadebox.dyn_lazyloaded [data-dyn_lqip="integrated"],
         .dyn_fadebox .dyn_lazyloaded [data-dyn_lqip="integrated"] {
-            opacity: 0;
+            opacity: 1;
         }
 
         <?php if (!empty($withTag)) : ?>
