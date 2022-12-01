@@ -294,7 +294,7 @@ class DynamicImage
 		}
 
 		// are we using a custom ratio that is larger than our own ratio? then offset the container widths since it will be "zoomed in" behind the crop, and we want the correct-sized image file
-		if ($this->ratio && $this->ratio !== TRUE) {
+		if ($this->ratio && $this->ratio !== TRUE && $this->ratioCrop) {
 			$sourceRatio = $this->sourceRatio();
 			$containerRatio = $this->parseRatio($this->ratio);
 			if ($sourceRatio < $containerRatio) {
