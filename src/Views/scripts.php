@@ -6,8 +6,8 @@
 </script>
 <noscript>
     <style type="text/css">
-        [data-dyn_lqip="separate"] {
-            opacity: 0;
+        .dyn_fadebox [data-dyn_lqip="integrated"] {
+            opacity: 1 !important;
         }
     </style>
 </noscript>

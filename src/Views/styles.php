@@ -74,11 +74,12 @@
             }
         }
 
-        [data-dyn_lqip="separate"] {
+        .dyn_fadebox [data-dyn_lqip="integrated"] {
+            opacity: 0;
             transition: opacity 400ms;
         }
 
-        .dyn_lazyloaded [data-dyn_lqip="separate"] {
+        .dyn_lazyloaded [data-dyn_lqip="integrated"] {
             opacity: 0;
         }
 
