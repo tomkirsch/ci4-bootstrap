@@ -385,7 +385,7 @@ class DynamicImage
 	{
 		$out = '';
 		$imgAttr = array_merge($this->getLqipAttr($mediaDict, FALSE), $this->imgAttr);
-		$imgAttr["alt"] ??= $this->alt ?? "";
+		$imgAttr["alt"] = $this->alt ?? "";
 
 		// lazyload
 		if ($this->isLazy) {
