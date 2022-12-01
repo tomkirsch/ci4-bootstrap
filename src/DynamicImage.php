@@ -298,8 +298,14 @@ class DynamicImage
 			$sourceRatio = $this->sourceRatio();
 			$containerRatio = $this->parseRatio($this->ratio);
 			if ($sourceRatio < $containerRatio) {
+				$percent = (100 * 100) / ($sourceRatio * 100);
+			} else {
+				$percent = $sourceRatio * 100;
+			}
+			if ($percent > 100) {
+				//d($mediaDict, $containerRatio, $sourceRatio);
 				foreach ($mediaDict as $media => $width) {
-					$mediaDict[$media] = $width * ($containerRatio + $sourceRatio);
+					$mediaDict[$media] = round(($percent * $width) / 100);
 				}
 			}
 		}
