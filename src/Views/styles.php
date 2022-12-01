@@ -26,6 +26,12 @@
             overflow: hidden;
         }
 
+        [data-dyn_fit="crop"] [data-dyn_lqip="separate"] {
+            max-width: none;
+            width: 100%;
+            height: 100%;
+        }
+
         [data-dyn_fit="crop"][dyn_wrapper_orient="portrait"] img {
             max-width: none !important;
             width: auto;
