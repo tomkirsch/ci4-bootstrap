@@ -538,7 +538,7 @@ class DynamicImage
 			default:
 				if (is_string($this->lqip) && substr($this->lqip, 0, 1) === '#') {
 					// hex color
-					$attr['src'] = $this->svgRect64($this->lqip);
+					$attr['src'] = $this->svgRect64($this->lqip, $this->srcWidth, $this->srcHeight);
 				} else if (is_numeric($this->lqip)) {
 					// it's a specific width
 					$attr['src'] = $this->destFileName(intval($this->lqip));
@@ -797,9 +797,9 @@ class DynamicImage
 	/**
 	 * Utility - base64 data to generate solid color LQIP using SVG rect
 	 */
-	public function svgRect64(string $color): string
+	public function svgRect64(string $color, int $width, int $height): string
 	{
-		$svg = '<svg preserveAspectRatio="none" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" fill="' . $color . '" /></svg>';
+		$svg = '<svg preserveAspectRatio="none" viewBox="0 0 ' . $width . ' ' . $height . '" xmlns="http://www.w3.org/2000/svg"><rect width="' . $width . '" height="' . $height . '" fill="' . $color . '" /></svg>';
 		return 'data:image/svg+xml;base64,' . base64_encode($svg);
 	}
 
