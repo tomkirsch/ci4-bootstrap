@@ -511,7 +511,7 @@ class DynamicImage
 	 */
 	protected function renderLqipOwnImg(): string
 	{
-		if (!$this->lpiq || !$this->lpiqIsOwnImg) return "";
+		if (!$this->lqip || !$this->lpiqIsOwnImg) return "";
 		return '<img ' . stringify_attributes($this->getLqipAttr(TRUE)) . '>' . $this->nl();
 	}
 
