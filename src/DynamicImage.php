@@ -2,28 +2,7 @@
 
 namespace Tomkirsch\Bootstrap;
 
-/**
- * DynamicImage allows you to utilize a dynamic image resizing script to output sizes needed for a Bootstrap layout.
- * Notes:
- * 1) This only works in regular .container elements (NOT .container-fluid)!
- * 2) This does not work in NESTED .container elements
- * 3) A .col container should be the ONLY col in the row. You will need to define sizes for this tool (sm, lg, etc.)
- * 
- * Supported elements: <img> and <picture>. Use <picture> for the most accurate sizing!
- * Example:
- * 
- * service('bootstrap')
- * ->dynamicImage('my-source-file.jpg')
- * ->withSize(1024, 768) // pass the size of the source file to avoid a getimagesize() call
- * ->cols('col-6 col-lg-4')
- * ->hires(2) // support 2x (the 1024px image will be downloaded for a 512px width retina display)
- * ->lazy(TRUE) // support data-src and data-srcset
- * ->element('picture', [], ['alt'=>'A cute kitten', 'class'=>'img-fluid'])
- * ->render();
- * 
- * See tests/app/Views/welcome_message.php for more examples
- */
-
+use CodeIgniter\Images\Image;
 
 class DynamicImage
 {
@@ -40,112 +19,242 @@ class DynamicImage
 	 */
 	const HIRES_SOURCE = 'source';
 
+	/**
+	 * Attributes for the <picture> element
+	 * @var array
+	 */
+	public $pictureAttr = [];
+
+	/**
+	 * Attributes for the <img> element
+	 * @var array
+	 */
+	public $imgAttr = [];
+
+	/**
+	 * The image file
+	 * @var Image
+	 */
+	public $file;
+
+	/**
+	 * Source image width/height
+	 * @var int
+	 */
+	public $origWidth, $origHeight;
+
+	/**
+	 * The public-facing filename (.htaccess rewrite)
+	 * @var string
+	 */
+	public $publicFile;
+
+	/**
+	 * The public-facing file extension
+	 * @var string
+	 */
+	public $publicFileExt;
+
+	/**
+	 * <img> alt attribute
+	 * @var string
+	 */
+	public $alt;
+
+	/**
+	 * GET query to append to the publicFile
+	 * @var null|array|string
+	 */
+	public $query;
+
+	/**
+	 * Raw grid layout dimensions, screen widths as keys and values as container widths (can also specify heights with CSV string) (ex: [1200=>190, 992=>480, 768=>"500,350"])
+	 * @var array
+	 */
+	public $grid;
+
+	/**
+	 * Original col- classes
+	 * @var string
+	 */
+	public $colClasses;
+
+	/**
+	 * Whether to create the col-* class div on render
+	 * @var bool
+	 */
+	public $colWrapper = FALSE;
+
+	/**
+	 * Attributes for the col wrapper
+	 * @var null|array
+	 */
+	public $colWrapperAttr;
+
+	/**
+	 * Bootstrap gutter width
+	 * @var int
+	 */
+	public $gutterWidth = 0;
+
+	/**
+	 * Max-height of container to prevent larger images from being used
+	 * @var int
+	 */
+	public $containerMaxHeight = 0;
+
+	/**
+	 * Maximum supported resolution
+	 * @var float
+	 */
+	public $maxResolutionFactor = 1;
+
+	/**
+	 * Resolution steps
+	 * @var float
+	 */
+	public $resolutionStep = 0.5;
+
+	/**
+	 * Maximum width/height to offer the public. These are hard limits that will never be surpassed.
+	 * @var int
+	 */
+	public $hiresX, $hiresY;
+
+	/**
+	 * Ratio setting 
+	 * @var bool|float|string
+	 */
+	public $ratio = FALSE;
+
+	/**
+	 * Whether image should be cropped to ratio
+	 * @var bool
+	 */
+	public $ratioCrop = FALSE;
+
+	/**
+	 * Ratio wrapper div attributes
+	 * @var array
+	 */
+	public $ratioWrapperAttr = [];
+
+	/**
+	 * Whether image is lazy-loaded (requires lazysizes JS)
+	 * @var bool
+	 */
+	public $lazy = FALSE;
+
+	/**
+	 * Low quality image placeholder setting
+	 * @var string|int|null
+	 */
+	public $lqip;
+
+	/**
+	 * LQIP attributes
+	 * @var null|array
+	 */
+	public $lqipAttr;
+
+	/**
+	 * LQIP is separate element? (Requires CSS positioning)
+	 * @var bool
+	 */
+	public $lpiqIsOwnImg = FALSE;
+
+	/**
+	 * Prints newlines
+	 * @var bool
+	 */
+	public $prettyPrint = FALSE;
+
+	/**
+	 * Reset grid after render. Set to FALSE to optimize loops that use the same grid
+	 * @var bool
+	 */
+	public $resetGrid = TRUE;
+
+	/**
+	 * Dictionary of screen widths and resolution factors
+	 * @var array
+	 */
+	protected $resolutionDict;
+
+	/**
+	 * Tracks wrappers to close divs
+	 * @var int
+	 */
+	protected $wrapCount;
+
+	/**
+	 * Array of col widths parsed from $colClasses
+	 */
+	protected $cols;
+
+	/**
+	 * Config instance
+	 * @var BootstrapConfig $config
+	 */
 	protected $config;
-	protected $nl = "\n";
-	protected $mediaDebug;
-	protected $prettyPrint;
-	protected $mediaCache = [];
-	protected $el;
-	protected $elAttr;
-	protected $imgAttr;
-	protected $colClassString; // class attribute for the col wrapper
-	protected $colWrapperAttr; // attributes for a wrapper div to be placed around the element
-	protected $ratioWrapperAttr; // attributes for a wrapper div to be placed around the element
-	protected $src; // source path+filename without ext
-	protected $srcExt; // no dot
-	protected $dest; // destination path+filename
-	protected $destExt; // no dot
-	protected $destQuery;
-	protected $srcWidth;
-	protected $srcHeight;
-	protected $lqip; // string source/command
-	protected $lqipAttr;
-	protected $lpiqIsOwnImg;
-	protected $colClasses = [];
-	protected $gutterWidth;
-	protected $hiresX;
-	protected $hiresY;
-	protected $resolutionStep;
-	protected $isLazy;
-	protected $ratio;
-	protected $ratioCrop;
-	protected $fileList;
-	protected $wrapCount = 0;
-	protected $alt;
 
 	public function __construct(?BootstrapConfig $config = NULL)
 	{
 		$this->config = $config ?? new BootstrapConfig();
-		$this->prettyPrint = $this->config->prettyPrint ?? FALSE;
-		$this->mediaDebug = $this->config->mediaDebug ?? FALSE;
-		$this->resetAll();
+		$this->reset();
 	}
 
 	/**
-	 * Reset everything to config defaults
+	 * Reset grid calculations and preferences to the config/defaults
 	 */
-	public function resetAll()
+	public function reset()
 	{
-		$this->resetFile();
-		$this->elAttr = [];
-		$this->imgAttr = [];
-		$this->lqipAttr = [];
-		$this->lpiqIsOwnImg = NULL;
-		$this->el = $this->config->defaultElement ?? 'picture';
-		$this->isLazy = $this->config->defaultIsLazy ?? FALSE;
-		$this->hiresX = $this->config->defaultHiresWidth ?? static::HIRES_SOURCE;
-		$this->hiresY = $this->config->defaultHiresHeight ?? static::HIRES_SOURCE;
-		$this->resolutionStep = $this->config->defaultResolutionStep ?? 1;
-		$this->lqip = $this->config->defaultLqip ?? NULL;
-		$this->ratio = $this->config->defaultUseRatio ?? FALSE;
-		$this->ratioWrapperAttr = NULL;
-		$this->gutterWidth = $this->config->defaultGutterWidth ?? 0;
-		$this->colClasses = [];
-		return $this;
-	}
+		$this->file = NULL;
+		$this->origWidth = $this->origHeight = NULL;
+		$this->publicFile = NULL;
+		$this->publicFileExt = NULL;
+		$this->query = NULL;
+		$this->alt = NULL;
 
-	/**
-	 * Reset the file parameter, but leaves all other settings intact from the last call (lqip, lazy, etc). Useful for bulk actions.
-	 */
-	public function resetFile()
-	{
-		// these will almost always be different
-		foreach (['src', 'srcExt', 'dest', 'destExt', 'srcWidth', 'srcHeight', 'alt'] as $prop) {
-			$this->$prop = NULL;
+		if ($this->resetGrid) {
+			$this->resetGrid();
 		}
-		$this->fileList = [];
-		return $this;
+		$this->maxResolutionFactor = $this->config->defaultMaxResolution;
+		$this->ratio($this->config->defaultUseRatio);
+		$this->lazy($this->config->defaultIsLazy);
+		$this->hires($this->config->defaultHiresWidth, $this->config->defaultHiresHeight, $this->config->defaultResolutionStep);
+		$this->lqip($this->config->defaultLqip);
+		$this->prettyPrint($this->config->prettyPrint);
+		$this->attr([], []);
 	}
 
 	/**
-	 * Sets the debugger to be on or off to easily see what <source>s are generated
+	 * Resets the grid
 	 */
-	public function debug(bool $value)
+	public function resetGrid()
 	{
-		$this->mediaDebug = $value;
+		$this->grid = NULL;
+		$this->colClasses = NULL;
+		$this->colWrapper = FALSE;
+		$this->gutterWidth = $this->config->defaultGutterWidth;
+		$this->containerMaxHeight = 0;
 		return $this;
 	}
 
 	/**
 	 *  Sets the source file to read; $dest can be used to dynamically rename the file; $query can pass a query string to the dest filename string
 	 * 
-	 * @param string $src Source file
-	 * @param string|null $alt The alt attribute for the <img>. If one is set in element(), it will override this value.
-	 * @param string|null $dest Destination (public-facing file, possibly rewritten with .htaccess)
+	 * @param string $file Local source image file
+	 * @param string|null $alt The alt attribute for the <img>
+	 * @param string|null $publicFile Public-facing file, possibly rewritten with .htaccess
 	 * @param string|array|null $query GET parameters to append to the destination
 	 */
-	public function withFile(string $src, ?string $alt = NULL, ?string $dest = NULL, $query = NULL)
+	public function withFile(string $file, ?string $alt = NULL, ?string $publicFile = NULL, $query = NULL)
 	{
-		// remove ext from filename(s)
-		list($this->src, $this->srcExt) = $this->stripExt($src);
-		if ($dest) {
-			list($this->dest, $this->destExt) = $this->stripExt($dest);
-		} else {
-			$this->dest = $this->src;
-			$this->destExt = $this->srcExt;
-		}
-		$this->destQuery = $query;
+		$this->file = $file;
 		$this->alt = $alt;
+		$this->publicFile = $publicFile;
+		$this->query = $query;
 		return $this;
 	}
 
@@ -154,51 +263,34 @@ class DynamicImage
 	 */
 	public function withSize(int $width, int $height)
 	{
-		$this->srcWidth = $width;
-		$this->srcHeight = $height;
+		$this->origWidth = $width;
+		$this->origHeight = $height;
 		return $this;
 	}
 
 	/**
-	 * Tell the library what col-* classes you'll be using. If $wrapperAttr is set, a wrapper div will be automagically be printed with the passed col classes
+	 * Sets the raw grid array
+	 * @param array|null $grid Pass keys as screen widths, values as expected container widths. Values can also be comma separated to specify heights.
+	 */
+	public function grid(?array $grid)
+	{
+		$this->grid = $grid;
+		return $this;
+	}
+
+	/**
+	 * Sets the grid using col-* classes. If $wrapperAttr is set, a wrapper div will be automagically be printed with the passed col classes
 	 * @param string|array|null $colClasses The column names (ex "col-md-5 col-lg-2")
 	 * @param array|null $wrapperAttr If not NULL, a column wrapper element will automatically be added with the col classes
+	 * @param int $gutterWidth Subtracts pixels from the bootstrap containers. Set to zero with gutterless layouts
+	 * @param int $containerMaxHeight Use to prevent large images being displayed on containers with max-height CSS
 	 */
-	public function cols($colClasses = NULL, ?array $wrapperAttr = NULL, ?int $gutterWidth = NULL)
+	public function cols($colClasses = NULL, ?array $wrapperAttr = NULL, ?int $gutterWidth = NULL, ?int $containerMaxHeight = NULL)
 	{
-		// record the original string so we can put it in the wrapper div
-		$this->colClassString = $colClasses ?? "";
-		if (empty($colClasses)) {
-			$this->colClasses = [];
-		} else {
-			$colClasses = is_string($colClasses) ? explode(' ', $colClasses) : $colClasses;
-			foreach ($colClasses as $className) {
-				if ($className === "col") $className = "col-xs-12"; // make this explicit for our class
-				if (!preg_match('/^col-([a-z]+)/', $className)) continue; // not a col class
-				if (!preg_match('/^col-[a-z]+-\d+/', $className)) $className .= "-12"; // ex col-md. Assume the widest.
-				$this->colClasses[] = $className;
-			}
-			$this->colClasses = array_unique($this->colClasses);
-			// always sort the classes for the caching mechanism
-			asort($this->colClasses);
-		}
+		$this->colClasses = $colClasses;
 		$this->colWrapperAttr = $wrapperAttr;
 		$this->gutterWidth = $gutterWidth ?? $this->gutterWidth ?? 0;
-		return $this;
-	}
-
-	/**
-	 * Sets the ratio
-	 * 
-	 * @param bool|string|float $value FALSE will disable ratio padding, TRUE will use the image's original ratio. Strings like "16:9" or "16/9" work as well.
-	 * @param bool $crop Crop the image inside the ratio container. If FALSE, the image will scale down and be centered
-	 * @param bool|array|null $wrapperAttr Attributes to add to the ratio wrapper html
-	 */
-	public function ratio($value, bool $ratioCrop = TRUE, $wrapperAttr = NULL)
-	{
-		$this->ratio = $value;
-		$this->ratioCrop = $ratioCrop;
-		$this->ratioWrapperAttr = ($wrapperAttr === TRUE) ? [] : $wrapperAttr;
+		$this->containerMaxHeight = $containerMaxHeight ?? $this->containerMaxHeight ?? 0;
 		return $this;
 	}
 
@@ -207,7 +299,7 @@ class DynamicImage
 	 */
 	public function lazy(bool $value)
 	{
-		$this->isLazy = $value;
+		$this->lazy = $value;
 		return $this;
 	}
 
@@ -226,7 +318,22 @@ class DynamicImage
 	}
 
 	/**
-	 * Sets the Low-Quality Image Placeholder
+	 * Sets the ratio. Requires CSS to apply padding to the wrapper.
+	 * 
+	 * @param bool|string|float $value FALSE will disable ratio padding, TRUE will use the image's original ratio. Strings like "16:9" or "16/9" work as well.
+	 * @param bool $crop Crop the image inside the ratio container. If FALSE, the image will scale down and be centered
+	 * @param array|null $wrapperAttr Attributes to add to the ratio wrapper html
+	 */
+	public function ratio($value, bool $ratioCrop = FALSE, array $ratioWrapperAttr = [])
+	{
+		$this->ratio = $value;
+		$this->ratioCrop = $ratioCrop;
+		$this->ratioWrapperAttr = $ratioWrapperAttr;
+		return $this;
+	}
+
+	/**
+	 * Sets the Low-Quality Image Placeholder (LQIP)
 	 * @param string|int|null $src Possible values - string 'xs': the source image at the smallest bootstrap container size, string 'pixel': a transparent pixel, int width: dynamically resized width in pixels (ie. 100px), string hex: a solid color (ie. '#FF0000'), string otherFileName: an alternate file
 	 * @param array $attr Attributes to attach to the LQIP element
 	 * @param bool $lpiqIsOwnImg This must be true if LQIP is an lazy-loaded <img> element. Positioning CSS is required to lay it on top of the <picture>
@@ -243,55 +350,51 @@ class DynamicImage
 	}
 
 	/**
-	 * Set the element to <picture> (with <source>s and <img>) or just an <img> with srcset attributes
-	 * @param string $value Must be either 'picture' or 'img'
-	 * @param array $attr HTML attributes to set on the element
-	 * @param array $attr HTML attributes to set on the nested <img> element (only valid if the element is a <picture>)
+	 * Sets attributes for the <picture> and <img> elements
 	 */
-	// set the desired element (img or picture), with optional attributes
-	public function element(string $value, array $elAttr = [], array $imgAttr = [])
+	public function attr(array $pictureAttr, array $imgAttr)
 	{
-		switch ($value) {
-			case 'img':
-			case 'picture':
-				$this->el = $value;
-				break;
-			default:
-				throw new \Exception("Unknown element: $value");
-		}
-		$this->elAttr = $elAttr;
+		$this->pictureAttr = $pictureAttr;
 		$this->imgAttr = $imgAttr;
 		return $this;
 	}
 
 	/**
-	 * Renders the HTML
-	 * @param bool $resetAll Set to FALSE when working in loops
-	 * @param bool $resetFile Set to FALSE when making multiple calls with the same file
+	 * PrettyPrint
 	 */
-	public function render(bool $resetAll = TRUE, bool $resetFile = TRUE): string
+	public function prettyPrint(bool $value)
 	{
-		if (empty($this->src)) throw new \Exception("You must call DynamicImage::withFile()");
-		if (empty($this->el)) $this->el = 'img'; //default to something
+		$this->prettyPrint = $value;
+		return $this;
+	}
 
-		$this->wrapCount = 0;
-		$out = $this->nl();
-
-		// do we not have an image size? then we need to call getimagesize()
-		$this->ensureSourceDim();
-
-		// set the data-orientation attribute for CSS/JS
-		$this->elAttr['data-dyn_src_orient'] = $this->getOrientation();
-
-		// check cache to avoid recalculating everything in loops and such
-		$cacheKey = implode('', $this->colClasses);
-		$mediaDict = $this->getMediaCache($cacheKey);
-		if (!$mediaDict) {
-			// generate media and image widths from the column class names
-			$mediaDict = $this->mediaDict($this->colDict($this->colClasses), TRUE);
-			// write cache
-			$this->setMediaCache($cacheKey, $mediaDict);
+	/**
+	 * Renders the <picture> element
+	 */
+	public function render(?array $options = NULL): string
+	{
+		// reset grid is true? then do it now so we don't keep the previous grid
+		if (!empty($options["resetGrid"])) {
+			$this->resetGrid();
 		}
+
+		// set public properties
+		foreach ($options as $option => $val) {
+			// anything passed in $config takes precedent
+			if (property_exists($this, $option)) {
+				$this->$option = $val;
+			}
+		}
+
+		// validate Image file
+		$this->checkFile();
+		// validate grid
+		if (!$this->grid) {
+			$this->parseColNames();
+			// make grid using col class names and bootstrap breakpoints
+			$this->grid($this->cols2Grid());
+		}
+		$mediaDict = $this->grid;
 
 		// are we using a custom ratio that is larger than our own ratio? then offset the container widths since it will be "zoomed in" behind the crop, and we want the correct-sized image file
 		if ($this->ratio && $this->ratio !== TRUE && $this->ratioCrop) {
@@ -303,14 +406,24 @@ class DynamicImage
 				$percent = $sourceRatio * 100;
 			}
 			if ($percent > 100) {
-				//d($mediaDict, $containerRatio, $sourceRatio);
-				foreach ($mediaDict as $media => $width) {
-					$mediaDict[$media] = round(($percent * $width) / 100);
+				foreach ($this->grid as $media => $dim) {
+					if (is_string($dim)) {
+						list($w, $h) = explode(",", $dim);
+						$w = round(($percent * intval($w)) / 100);
+						$h = round(($percent * intval($h)) / 100);
+						$mediaDict[$media] = "$w,$h";
+					} else {
+						$mediaDict[$media] = round(($percent * $dim) / 100);
+					}
 				}
 			}
 		}
-		// get resolution dictionary
-		$resolutionDict = $this->resolutionDict($mediaDict, $this->srcWidth);
+		// put our biggest media queries first and create resolution dictionary
+		krsort($mediaDict);
+		$this->makeResolutionDict($mediaDict);
+
+		$this->wrapCount = 0;
+		$out = "";
 
 		// make col wrapper
 		$out .= $this->renderColWrapper();
@@ -318,77 +431,64 @@ class DynamicImage
 		// make ratio wrapper(s)
 		$out .= $this->renderRatioWrapper();
 
-		// elements
-		$out .= $this->el === 'img' ? $this->renderSrcsetImg($mediaDict, $resolutionDict) : $this->renderPicture($mediaDict, $resolutionDict);
+		// render picture and img
+		$out .=  $this->renderPicture();
 
 		// close the wrappers
 		$out .= str_repeat('</div>' . $this->nl(), $this->wrapCount);
 
-		if ($this->mediaDebug) {
-			$out = '';
-			foreach ($this->fileList as $index => $file) {
-				$out .= $file . '<br>';
-			}
-		}
-		if ($resetAll) {
-			$this->resetAll();
-		} else if ($resetFile) {
-			$this->resetFile();
-		}
+		// reset stuff
+		$this->reset();
+
 		return $out;
 	}
 
-	protected function renderPicture(array $mediaDict, array $resolutionDict): string
+	/**
+	 * Render <picture> element
+	 */
+	protected function renderPicture(): string
 	{
-		$out = '';
-		$pictureAttr = $this->elAttr;
-
+		$this->pictureAttr ??= [];
 		// LQIP outside of <picture>.. we place it first, so it's behind the picture
-		$out .= $this->renderLqipOwnImg($mediaDict);
-
+		$out = $this->renderLqipOwnImg();
 		// picture
-		$out .= '<picture' . stringify_attributes($pictureAttr) . '>' . $this->nl();
-		foreach ($resolutionDict as $mediaWidth => $data) {
-			$sourceAttr = [];
+		$out .= '<picture' . stringify_attributes($this->pictureAttr) . '>' . $this->nl();
+		foreach ($this->resolutionDict as $mediaWidth => $data) {
+			$sourceAttr = ["media" => '(min-width:' . $mediaWidth . 'px)'];
 			$sources = [];
-			$sourceAttr['media'] = '(min-width:' . $mediaWidth . 'px)';
 			foreach ($data as $factor => $width) {
 				// are we not supporting hi res devices? then skip
 				if (floatval($factor) > 1 && empty($this->hiresX)) continue;
-				$src = $this->destFileName($width, $this->getResolutionMedia($factor, $sourceAttr['media']));
+				$src = $this->getPublicFileName($width);
 				// use a key here, so we don't get a bloated thing like "foo-800.jpg 4x, foo-800.jpg 3x, foo-800.jpg 2x"
 				$key = $src;
 				if (floatval($factor) > 1) $src .= ' ' . $factor . 'x';
 				$sources[$key] = $src;
 			}
-			if ($this->destExt === 'webp' || $this->destExt === 'jp2') {
-				$sourceAttr['type'] = 'image/' . $this->destExt;
+			if ($this->publicFileExt === 'webp' || $this->publicFileExt === 'jp2') {
+				$sourceAttr['type'] = 'image/' . $this->publicFileExt;
 			}
-			$attrName = $this->isLazy ? 'data-srcset' : 'srcset';
+			$attrName = $this->lazy ? 'data-srcset' : 'srcset';
 			$sourceAttr[$attrName] = $this->nl() . implode(', ' . $this->nl(), array_values($sources));
 			$out .= '<source' . stringify_attributes($sourceAttr) . '>' . $this->nl();
 		}
 		// write the <img>
-		$out .= $this->renderPictureImg($mediaDict);
+		$out .= $this->renderPictureImg();
 		$out .= '</picture>' . $this->nl();
 		return $out;
 	}
 
-	protected function renderLqipOwnImg(array $mediaDict): string
-	{
-		if (!$this->lpiqIsOwnImg) return "";
-		return '<img ' . stringify_attributes($this->getLqipAttr($mediaDict, TRUE)) . '>' . $this->nl();
-	}
-
-	// render the <img> element(s) for a <picture>
-	protected function renderPictureImg(array $mediaDict): string
+	/**
+	 * Renders the <img> element inside of <picture>
+	 */
+	protected function renderPictureImg(): string
 	{
 		$out = '';
-		$imgAttr = array_merge($this->getLqipAttr($mediaDict, FALSE), $this->imgAttr);
+		$imgAttr = array_merge($this->getLqipAttr(FALSE), $this->imgAttr ?? []);
 		$imgAttr["alt"] = $this->alt ?? "";
 
 		// lazyload
-		if ($this->isLazy) {
+		if ($this->lazy) {
 			$imgAttr = $this->ensureAttr('class', 'lazyload', $imgAttr);
 			// is LQIP it's own image? then set the picture img to a transparent pixel
 			if ($this->lpiqIsOwnImg) {
@@ -406,64 +506,73 @@ class DynamicImage
 		return $out;
 	}
 
-	// render <img> element(s) using srcset
-	protected function renderSrcsetImg(array $mediaDict, array $resolutionDict): string
+	/**
+	 * Render the <img> for LQIP when it's a separate element from <picture>
+	 */
+	protected function renderLqipOwnImg(): string
 	{
-		$out = '';
-		$sources = [];
-		$sizes = [];
-
-		// since we can't arrage using picture, we must only specify one file for each resolution. make it the biggest it'll possibly be to preven upscaling
-		$factorWidths = [];
-		foreach ($resolutionDict as $screenSize => $data) {
-			foreach ($data as $factor => $width) {
-				$factorWidths[$factor] = max($factorWidths[$factor] ?? 0, $width);
-			}
-		}
-
-		$minWidth = min($factorWidths);
-		foreach ($factorWidths as $factor => $width) {
-			$mediaQuery = '(min-width:' . $width . 'px)';
-			$file = $this->destFileName($width, ($width === $minWidth) ? NULL : $mediaQuery);
-			if (empty($this->hiresX)) {
-				// foo-800.jpg 800w, foo-400.jpg 400w, foo-100.jpg
-				$src = $file . ' ' . $width . 'w';
-				// (min-width: 860px) 800px
-				$size = ($width === $minWidth) ? '' : $mediaQuery . ' ';
-				$size .= $width . 'px';
-				$sizes[] = $size;
-			} else {
-				// foo-800.jpg 2x, foo-400.jpg
-				$file = $this->destFileName($width, $this->getResolutionMedia($factor));
-				$src = $file;
-				if (floatval($factor) > 1) $src .= ' ' . $factor . 'x';
-			}
-			$sources[$file] = $src; // use a key here, so we don't get a bloated thing like "foo-800.jpg 4x, foo-800.jpg 3x, foo-800.jpg 2x"
-		}
-
-		$imgAttr = array_merge($this->elAttr, $this->imgAttr);
-		$imgAttr["alt"] = $this->elAttr["alt"] ?? $this->alt ?? "";
-
-		if ($this->lpiqIsOwnImg) {
-			$out .= '<img ' . stringify_attributes($this->getLqipAttr($mediaDict, TRUE)) . '>' . $this->nl();
-		} else {
-			$imgAttr = array_merge($this->getLqipAttr($mediaDict, FALSE), $imgAttr);
-		}
-		// lazyload class
-		if ($this->isLazy) {
-			$imgAttr = $this->ensureAttr('class', 'lazyload', $imgAttr);
-		}
-		// sizes
-		if (!empty($sizes)) {
-			$imgAttr = $this->ensureAttr('sizes', implode(',', $sizes), $imgAttr);
-		}
-		// srcset or data-srcset
-		$attrName = $this->isLazy ? 'data-srcset' : 'srcset';
-		$imgAttr[$attrName] = $this->nl() . implode(', ' . $this->nl(), array_values($sources));
-		$out .= '<img ' . stringify_attributes($imgAttr) . '>' . $this->nl();
-		return $out;
+		if (!$this->lpiqIsOwnImg) return "";
+		return '<img ' . stringify_attributes($this->getLqipAttr(TRUE)) . '>' . $this->nl();
 	}
 
+	/**
+	 * Render the col-* wrapper div
+	 */
+	protected function renderColWrapper(): string
+	{
+		if (!$this->colWrapper) return "";
+		// add the string supplied in cols() call
+		$wrapperAttr = $this->ensureAttr('class', $this->colClasses, $this->colWrapperAttr);
+		$this->wrapCount++;
+		return '<div data-dyn_wrapper="col" ' . stringify_attributes($wrapperAttr) . '>' . $this->nl();
+	}
+
+	/**
+	 *  Set the src and alt attributes of LQIP <img>
+	 */
+	protected function getLqipAttr(bool $isOwnImg): array
+	{
+		$attr = $isOwnImg ? [] : $this->lqipAttr ?? [];
+		$attr["data-dyn_lqip"] = $isOwnImg ? "separate" : "integrated";
+		switch ($this->lqip) {
+			case static::LQIP_XS:
+				// use smallest container width
+				$attr['src'] = $this->getPublicFileName($this->getSmallestWidth());
+				break;
+			case static::LQIP_PIXEL:
+				// transparent pixel base64
+				$attr['src'] = $this->pixel64();
+				break;
+			default:
+				if (is_string($this->lqip) && substr($this->lqip, 0, 1) === '#') {
+					// hex color
+					$attr['src'] = $this->svgRect64($this->lqip, $this->origWidth, $this->origHeight);
+				} else if (is_numeric($this->lqip)) {
+					// it's a specific width
+					$attr['src'] = $this->getPublicFileName(intval($this->lqip));
+				} else if (!empty($this->lqip)) {
+					// something custom, I guess
+					$attr['src'] = $this->lqip;
+				} else {
+					// empty/null. use the first image as presribed by resolutionDict
+					$attr['src'] = $this->getPublicFileName($this->getSmallestWidth());
+				}
+		} // endswitch
+		return $attr;
+	}
+
+	protected function getSmallestWidth(): int
+	{
+		$w = PHP_INT_MAX;
+		foreach ($this->resolutionDict as $res => $data) {
+			$w = min($w, min($data));
+		}
+		return $w === PHP_INT_MAX ? 1 : $w;
+	}
+
+	/**
+	 * Render the ratio wrapper div
+	 */
 	protected function renderRatioWrapper(): string
 	{
 		// is ratio NULL/FALSE? get out.
@@ -481,7 +590,7 @@ class DynamicImage
 		// is the ratio different than the source image? write the cropping div, if ratioCrop is true
 		if ($this->ratioCrop && round($containerRatio, 4) !== round($sourceRatio, 4)) {
 			$fit = "crop";
-			$orientation = $this->getOrientation();
+			$orientation = $this->getOrientation($this->origWidth, $this->origHeight);
 			$cropAttr = $this->getRatioAttr();
 			$containerRatio *= 100;
 			$sourceRatio *= 100;
@@ -496,101 +605,45 @@ class DynamicImage
 				$cropAttr["style"] .= ";padding-$otherSide:$containerRatio%;padding-$ratioSide:$sourceRatio%";
 			}
 		}
-
 		$out .= '<div data-dyn_fit="' . $fit . '"' . stringify_attributes($ratioWrapperAttr) . '>' . $this->nl();
 		$this->wrapCount++;
 		if ($cropAttr) {
-			$out .= '<div data-dyn_crop="' . $this->srcWidth . '/' . $this->srcHeight . '" ' . stringify_attributes($cropAttr) . '>' . $this->nl();
+			$out .= '<div data-dyn_crop="' . $this->origWidth . '/' . $this->origHeight . '" ' . stringify_attributes($cropAttr) . '>' . $this->nl();
 			$this->wrapCount++;
 		}
 
 		return $out;
 	}
 
-	protected function renderColWrapper(): string
-	{
-		$wrapperAttr = $this->colWrapperAttr;
-		if ($wrapperAttr === NULL) return "";
-		// add the string supplied in cols() call
-		$wrapperAttr = $this->ensureAttr('class', $this->colClassString, $wrapperAttr);
-		$this->wrapCount++;
-		return '<div data-dyn_wrapper="col" ' . stringify_attributes($wrapperAttr) . '>' . $this->nl();
-	}
-
 	/**
-	 *  Set the src and alt attributes of LQIP <img>
+	 * Take an array of column classes (col-*) and transform them into media widths and container widths
+	 * input: ['col-10', 'col-md-6', 'col-xl-2'] output: [1200=>190, 992=>480, 768=>360, 0=>450]
 	 */
-	protected function getLqipAttr(array $mediaDict, bool $isOwnImg): array
+	protected function cols2Grid(bool $forceZeroMediaSize = TRUE): array
 	{
-		$attr = $isOwnImg ? [] : $this->lqipAttr;
-		$attr["data-dyn_lqip"] = $isOwnImg ? "separate" : "integrated";
-		switch ($this->lqip) {
-			case static::LQIP_XS:
-				// use xs container width
-				// if we didn't see a given width for xs (ie. col-6), then use the smallest in bootstrap containers
-				$width = floor($mediaDict[0] ?? min($this->config->containers()));
-				$attr['src'] = $this->destFileName($width);
-				break;
-			case static::LQIP_PIXEL:
-				// transparent pixel base64
-				$attr['src'] = $this->pixel64();
-				break;
-			default:
-				if (is_string($this->lqip) && substr($this->lqip, 0, 1) === '#') {
-					// hex color
-					$attr['src'] = $this->svgRect64($this->lqip, $this->srcWidth, $this->srcHeight);
-				} else if (is_numeric($this->lqip)) {
-					// it's a specific width
-					$attr['src'] = $this->destFileName(intval($this->lqip));
-				} else if (!empty($this->lqip)) {
-					// something custom, I guess
-					$attr['src'] = $this->lqip;
-				} else {
-					// empty/null. use the first image as presribed by mediaDict
-					$width = floor($mediaDict[0] ?? min($this->config->containers()));
-					$attr['src'] = $this->destFileName($width);
-				}
-		} // endswitch
-		return $attr;
-	}
-
-	/*
-		Take an array of column classes (col-*) and make keys from the column number.
-		input: ['col-10', 'col-md-6', 'col-xl-2'] output: [10=>'xs' 6=>'md', 2=>'lg']
-	*/
-	protected function colDict(array $colClasses): array
-	{
+		// create col dictionary: [10=>'xs' 6=>'md', 2=>'lg']
 		$colDict = [];
-		foreach ($colClasses as $colClass) {
+		foreach ($this->cols as $colClass) {
 			$matches = [];
 			if (!preg_match('/^col-([a-z]+)-(\d+)/', $colClass, $matches)) continue;
 			$colDict[intval($matches[2])] = $matches[1];
 		}
-		// sort the dictionary by $colSize, from smallest bootstrap size to largest, so bigger cols overwrite mediaWidth keys generated by smaller ones
+		// sort the dictionary by $colSize, from smallest bootstrap size to largest, so bigger cols overwrite mediaDict keys generated by smaller ones
 		uasort($colDict, function (string $a, string $b) {
 			$aVal = ($a === 'xs') ? 0 : $this->config->container($a);
 			$bVal = ($b === 'xs') ? 0 : $this->config->container($b);
 			return ($aVal <=> $bVal);
 		});
-		return $colDict;
-	}
 
-	/*
-		Take a column dictionary from colDict() and make array with media-width keys and max widths for the images inside them.
-		Use $forceZeroMediaSize when your regular <img> element is a LQIP
-		input: [10=>'xs' 6=>'md', 2=>'lg'] output: [1200=>190, 992=>480, 768=>360, 0=>450]
-	*/
-	protected function mediaDict(array $colDict, ?bool $forceZeroMediaSize = FALSE): array
-	{
-		$imgMediaDict = [];
+		$grid = [];
 		// are there no specified cols? then assume it's full container width
 		if (empty($colDict)) {
 			// no columns specified, so we just loop the containers
-			$imgMediaDict[0] = min($this->config->containers()); // handle xs size, since it's not defined in containers
+			$grid[0] = min($this->config->containers()); // handle xs size, since it's not defined in containers
 			// pull media width from breakpoints, and image widths from containers
 			foreach ($this->config->containers() as $containerSize => $containerWidth) {
 				$mediaWidth = $this->config->breakpoint($containerSize);
-				$imgMediaDict[$mediaWidth] = $this->config->container($containerSize) - ($this->gutterWidth * 2);
+				$grid[$mediaWidth] = $this->config->container($containerSize) - ($this->gutterWidth * 2);
 			}
 		} else {
 			// col-* classes were indicated, so we must calculate the image widths
@@ -606,100 +659,152 @@ class DynamicImage
 						continue;
 					}
 					// we only want one <source> for each media width. Our colDict sorting ensures it'll be the correct one.
-					$imgMediaDict[$mediaWidth] = $imageWidth;
+					$grid[$mediaWidth] = $imageWidth;
 				}
 			}
 		} //endif
-		if ($forceZeroMediaSize && !isset($imgMediaDict[0])) {
+		if ($forceZeroMediaSize && !isset($grid[0])) {
 			$minContainer = min($this->config->containers());
 			// if we have a col class without a size (ie col-6), we need to divide the container width
 			if (in_array('xs', $colDict)) {
 				$colNum = array_search('xs', $colDict);
 				$fraction = $colNum / $this->config->gridCols;
-				$imgMediaDict[0] = ceil($minContainer * $fraction) - ($this->gutterWidth * 2);
+				$grid[0] = ceil($minContainer * $fraction) - ($this->gutterWidth * 2);
 			} else {
-				$imgMediaDict[0] = $minContainer - ($this->gutterWidth * 2);
+				$grid[0] = $minContainer - ($this->gutterWidth * 2);
+			}
+		}
+		// is there containerMaxHeight? set it
+		if ($this->containerMaxHeight) {
+			foreach ($grid as $media => $width) {
+				$grid[$media] = "$width,$this->containerMaxHeight";
 			}
 		}
 		// put our biggest media queries first
-		krsort($imgMediaDict);
-		return $imgMediaDict;
+		krsort($grid);
+		return $grid;
 	}
 
-	/*
-		Takes an array from imgMediaDict() and creates an array that can be used
-		to create 'srcset' and/or 'sizes' sttributes for <img> or <src>.
-		Input: [1200=>190, 992=>480, 768=>360, 0=>450] Output: 
-		[
-			// media	=> [factor=>imageWidth, ...]
-			1200 		=> ['4'=>760, '3'=>570, '2'=>380, '1'=>190],
-			992			=> ['4'=>1920, '3'=>1440, '2'=>960, '1'=>480],
-			0			=> ['4'=>1800, '3'=>1350, '2'=>900, '1'=>450]
-		]
-	*/
-
-	protected function resolutionDict(array $imgMediaDict, int $srcMaxWidth): array
+	/**
+	 * Array of screen widths, values are array of resolutions and widths
+	 * Input: [1200=>190, 992=>480, 768=>360, 0=>450]
+	 * Output:
+	 * [
+	 * 1200 		=> ['4'=>760, '3'=>570, '2'=>380, '1'=>190],
+	 * 992			=> ['4'=>1920, '3'=>1440, '2'=>960, '1'=>480],
+	 * 0			=> ['4'=>1800, '3'=>1350, '2'=>900, '1'=>450]
+	 * ]
+	 */
+	protected function makeResolutionDict(array $mediaDict)
 	{
-		$maxResolution = $this->config->defaultMaxResolution ?? 1;
+		$maxResolution = $this->maxResolutionFactor;
 		// figure out our max width
 		if (is_numeric($this->hiresX) && (float) $this->hiresX <= 10) {
 			// we were given a resolution, ensure maxWidth doesn't exceed orig image
 			$maxResolution = (float) $this->hiresX;
-			$maxWidth = min($this->srcWidth, $this->srcWidth * $maxResolution);
+			$maxWidth = min($this->origWidth, $this->origWidth * $maxResolution);
 		} else if (is_numeric($this->hiresX)) {
 			// we were given a hard px value
-			$maxWidth = min($this->srcWidth, (int) $this->hiresX);
+			$maxWidth = min($this->origWidth, (int) $this->hiresX);
 		} else {
-			$maxWidth = $this->srcWidth;
+			// default to the source image width
+			$maxWidth = $this->origWidth;
 		}
 		if ($maxResolution < 1) throw new \Exception("Invalid max resolution: $maxResolution");
 
-		$maxHeight = $this->hiresY === "source" ? $this->srcHeight : $this->hiresY;
+		// if hiresY was specified, ensure we use it
+		$maxHeight = $this->hiresY === "source" ? $this->origHeight : $this->hiresY;
 		if ($maxHeight !== NULL && !is_int($maxHeight)) throw new \Exception("Invalid hires height: $maxHeight");
 
-		$resolutionDict = [];
-		foreach ($imgMediaDict as $mediaWidth => $imageWidth) {
+		$this->resolutionDict = [];
+		foreach ($mediaDict as $mediaWidth => $dim) {
+			if (is_string($dim)) {
+				list($containerWidth, $containerHeight) = explode(",", $dim);
+				$containerWidth = intval($containerWidth);
+				$containerHeight = intval($containerHeight);
+			} else {
+				$containerWidth = $dim;
+				$containerHeight = 0;
+			}
 			// loop through possible resolutions, highest first
 			for ($i = $maxResolution; $i >= 1; $i -= $this->resolutionStep) {
 				// calculate the final dimensions at this resolution, but limiting the width (and height if needed)
-				list($hiresWidth, $hiresHeight) = $this->reproportion(floor($imageWidth * $i), $maxHeight ?? 0);
-				if ($hiresWidth > $maxWidth) continue;
-				if (!isset($resolutionDict[$mediaWidth])) $resolutionDict[$mediaWidth] = [];
-				$resolutionDict[$mediaWidth][(string) $i] = $hiresWidth;
-			} // endfor
+				list($hiresWidth, $hiresHeight) = $this->reproportion(floor($containerWidth * $i), floor($containerHeight * $i));
+				if ($hiresWidth > $maxWidth || $hiresHeight > $maxHeight) continue; // resulting image was too big, skip this resolution
+				$this->resolutionDict[$mediaWidth] ??= [];
+				$this->resolutionDict[$mediaWidth][(string) $i] = $hiresWidth;
+			}
 		}
-		return $resolutionDict;
 	}
 
 	/**
-	 * Returns "portrait" or "lanscape". Square images are landscape.
+	 * Filter and sort the col-* class names
 	 */
-	public function getOrientation(): string
+	protected function parseColNames()
 	{
-		$this->ensureSourceDim();
-		return $this->orientation($this->srcWidth, $this->srcHeight);
+		$this->cols = [];
+		if (!empty($this->colClasses)) {
+			$colClasses = is_string($this->colClasses) ? explode(' ', $this->colClasses) : $this->colClasses;
+			foreach ($colClasses as $className) {
+				if ($className === "col") $className = "col-xs-12"; // make this explicit for our class
+				if (!preg_match('/^col-([a-z]+)/', $className)) continue; // not a col class
+				if (!preg_match('/^col-[a-z]+-\d+/', $className)) $className .= "-12"; // col that fills remaining space. (ex "col-md") Assume the widest.
+				$this->cols[] = $className;
+			}
+			$this->cols = array_unique($this->cols);
+		}
 	}
 
-	protected function orientation(int $width, int $height): string
+	/**
+	 * Ensures file is an Image and we have width/height
+	 */
+	protected function checkFile()
 	{
-		return $height > $width ? "portrait" : "landscape";
+		if (!is_a($this->file, "CodeIgniter\Images\Image")) $this->file = new Image($this->file, FALSE);
+		if (!$this->origWidth || !$this->origHeight) {
+			$props = $this->file->getProperties(TRUE);
+			$this->origWidth = $props["width"];
+			$this->origHeight = $props["height"];
+		}
+		$this->publicFile ??= $this->file->getBasename("." . $this->file->getExtension());
+		$this->publicFileExt ??= $this->file->getExtension();
 	}
 
-	protected function getMediaCache(string $key)
+	/**
+	 * Gets the public-facing file name based on width
+	 */
+	protected function getPublicFileName(int $width): string
 	{
-		return $this->mediaCache[$key] ?? NULL;
+		$file = $this->config->dynamicImageFileName($this->publicFile, $this->publicFileExt, $width);
+		// query string
+		$q = '';
+		if (!empty($this->query)) {
+			if (is_string($this->query)) {
+				$q = strpos($this->query, '?') === FALSE ? $this->query : substr($this->query, 1);
+			} else if (is_array($this->query)) {
+				$q = http_build_query($this->query);
+			}
+			$q = strpos($file, "?") === FALSE ? "?$q" : "&$q";
+		}
+		return $file . $q;
 	}
 
-	protected function setMediaCache(string $key, array $value)
+	/**
+	 * Gets float ratio
+	 */
+	public function sourceRatio(): float
 	{
-		$this->mediaCache[$key] = $value;
+		return round($this->origHeight / $this->origWidth, 5);
 	}
 
+	/**
+	 * Gets attributes for ratio wrapper
+	 */
 	protected function getRatioAttr(array $attr = []): array
 	{
 		if ($this->ratio === TRUE) {
 			// use source image ratio
-			$style = "--aspect-ratio:$this->srcWidth/$this->srcHeight";
+			$style = "--aspect-ratio:$this->origWidth/$this->origHeight";
 		} else {
 			// 16/9 or 16:9 or 1.775
 			$style = "--aspect-ratio:$this->ratio";
@@ -707,12 +812,9 @@ class DynamicImage
 		return $this->ensureAttr('style', $style, $attr);
 	}
 
-	public function sourceRatio(): float
-	{
-		$this->ensureSourceDim();
-		return round($this->srcHeight / $this->srcWidth, 5);
-	}
-
+	/**
+	 * Parses ratio string like "16/9" and "16:9" to float
+	 */
 	protected function parseRatio($ratio): ?float
 	{
 		if (is_string($ratio)) {
@@ -727,15 +829,35 @@ class DynamicImage
 	}
 
 	/**
+	 * Resize image maintaining aspect ratio
+	 */
+	protected function reproportion(int $width, int $height = 0, string $masterDim = 'auto'): array
+	{
+		if ($masterDim !== 'width' && $masterDim !== 'height') {
+			if ($width > 0 && $height > 0) {
+				$masterDim = ((($this->origHeight / $this->origWidth) - ($height / $width)) < 0) ? 'width' : 'height';
+			} else {
+				$masterDim = ($height === 0) ? 'width' : 'height';
+			}
+		} elseif (($masterDim === 'width' && $width === 0) || ($masterDim === 'height' && $height === 0)
+		) {
+			throw new \Exception("Invalid sizes passed");
+		}
+
+		if ($masterDim === 'width') {
+			$height = (int) floor($width * $this->origHeight / $this->origWidth);
+		} else {
+			$width = (int) floor($this->origWidth * $height / $this->origHeight);
+		}
+		return [$width, $height];
+	}
+
+	/**
 	 * Ensures the array key is set, and if already set, it adds the attributes. Also works with inline styles.
 	 */
-	protected function ensureAttr(string $attrName, string $attrValue, $attr = NULL): array
+	protected function ensureAttr(string $attrName, string $attrValue, ?array $attr = NULL): array
 	{
-		if (empty($attr)) {
-			$attr = [];
-		} else if (!is_array($attr)) {
-			throw new \Exception("Attributes must be passed as an associative array");
-		}
+		$attr ??= [];
 		$sep = $attrName === 'style' ? ';' : ($attrName === 'class' ? ' ' : '');
 		if (isset($attr[$attrName])) {
 			$attr[$attrName] .= $sep . $attrValue;
@@ -745,45 +867,20 @@ class DynamicImage
 		return $attr;
 	}
 
-	protected function destFileName(int $width, ?string $media = NULL): string
+	/**
+	 * Returns portrait or landscape
+	 */
+	protected function getOrientation(int $width, int $height): string
 	{
-		$file = $this->config->dynamicImageFileName($this->dest, $this->destExt, $width);
-		// add to our file list, so we can output filename instead of the elements
-		if ($this->mediaDebug) {
-			$id = 'bs-' . md5($media . $file . uniqid()); // prevent ids from starting with a number
-			$parts = explode('/', $file);
-			$f = array_pop($parts);
-			$style = $media ? '<style type="text/css">@media ' . $media . '{#' . $id . '{font-weight:bold;}}</style>' : '<style type="text/css">#' . $id . '{font-weight:bold;}</style>';
-			$this->fileList[] = $style . '<span id="' . $id . '">' . $f . '</span>';
-		}
-
-		// query string
-		$q = '';
-		if (!empty($this->destQuery)) {
-			if (is_string($this->destQuery)) {
-				$q = strpos($this->destQuery, '?') === FALSE ? '?' : '';
-				$q .= $this->destQuery;
-			} else if (is_array($this->destQuery)) {
-				$q = '?' . http_build_query($this->destQuery);
-			}
-		}
-		return $file . $q;
+		return $height > $width ? "portrait" : "landscape";
 	}
 
-	protected function ensureSourceDim()
+	/**
+	 * Gets newline if prettyPrint is TRUE
+	 */
+	protected function nl(): string
 	{
-		if (!$this->srcWidth || !$this->srcHeight) {
-			$size = getimagesize($this->src . '.' . $this->srcExt);
-			if (!$size) throw new \Exception("Cannot read image size for $this->src.$this->srcExt");
-			list($this->srcWidth, $this->srcHeight) = $size;
-		}
-	}
-
-	protected function stripExt(string $src): array
-	{
-		$parts = explode('.', $src);
-		$ext = array_pop($parts);
-		return [implode('.', $parts), $ext];
+		return $this->prettyPrint ? "\n" : '';
 	}
 
 	/**
@@ -801,55 +898,5 @@ class DynamicImage
 	{
 		$svg = '<svg preserveAspectRatio="none" viewBox="0 0 ' . $width . ' ' . $height . '" xmlns="http://www.w3.org/2000/svg"><rect width="' . $width . '" height="' . $height . '" fill="' . $color . '" /></svg>';
 		return 'data:image/svg+xml;base64,' . base64_encode($svg);
-	}
-
-	// for debug only. but yuck!!
-	protected function getResolutionMedia($factor, ?string $otherMedia = NULL): string
-	{
-		if ($factor > 1) {
-			$parts = [];
-			$dpi = $factor * 96;
-			$parts[] = "-webkit-min-device-pixel-ratio: $factor";
-			$parts[] = "min--moz-device-pixel-ratio: $factor";
-			$parts[] = "-o-min-device-pixel-ratio: $factor/1";
-			$parts[] = "min-device-pixel-ratio: $factor";
-			$parts[] = "min-resolution: $dpi" . 'dpi';
-			$parts[] = "min-resolution: $factor" . 'dppx';
-			$otherMedia = $otherMedia ? ' and ' . $otherMedia : '';
-			$out = '(' . implode(')' . $otherMedia . ', (', $parts) . ')' . $otherMedia;
-		} else {
-			$out = $otherMedia ?? '';
-		}
-		return $out;
-	}
-
-	protected function nl(): string
-	{
-		return $this->prettyPrint ? $this->nl : '';
-	}
-	protected function tab(): string
-	{
-		return $this->prettyPrint ? '	' : '';
-	}
-
-	protected function reproportion(int $width, int $height = 0, string $masterDim = 'auto'): array
-	{
-		if ($masterDim !== 'width' && $masterDim !== 'height') {
-			if ($width > 0 && $height > 0) {
-				$masterDim = ((($this->srcHeight / $this->srcWidth) - ($height / $width)) < 0) ? 'width' : 'height';
-			} else {
-				$masterDim = ($height === 0) ? 'width' : 'height';
-			}
-		} elseif (($masterDim === 'width' && $width === 0) || ($masterDim === 'height' && $height === 0)
-		) {
-			throw new \Exception("Invalid sizes passed");
-		}
-
-		if ($masterDim === 'width') {
-			$height = (int) floor($width * $this->srcHeight / $this->srcWidth);
-		} else {
-			$width = (int) floor($this->srcWidth * $height / $this->srcHeight);
-		}
-		return [$width, $height];
 	}
 }

@@ -1,6 +1,6 @@
 <?php
 $file = 'kitten-src.jpg';
-$debug = FALSE;
+$file2 = 'kitten-portrait-src.jpg';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -44,11 +44,13 @@ $debug = FALSE;
 	</style>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/lazysizes/5.3.0/lazysizes.min.js" integrity="sha512-JrL1wXR0TeToerkl6TPDUa9132S3PB1UeNpZRHmCe6TxS43PFJUcEYUhjJb/i63rSd+uRvpzlcGOtvC/rDQcDg==" crossorigin="anonymous"></script>
 
+	<!-- output needed styles for cropping/ratio padding -->
 	<?= view("Tomkirsch\Bootstrap\styles", ["withTag" => TRUE]) ?>
+	<!-- output scripts for lazyload -->
 	<?= view("Tomkirsch\Bootstrap\scripts") ?>
 </head>
 
-<body>
+<body class="pb-3">
 
 	<div class="container mb-3">
 		<h3>Size Detection</h3>
@@ -72,128 +74,172 @@ $debug = FALSE;
 			<?php endfor; ?>
 		</div>
 	</div>
-	<hr>
-	<div class="container mb-3">
-		<h3>Max Resolution: 1x</h3>
-		<?php foreach (['col-xs-12', 'col-md-6 col-lg-4 col-xl-2'] as $cols) : ?>
-			<div class="row">
-				<?= \Config\Services::bootstrap()
-					->dynamicImage($file, "kitties!")
-					->cols($cols, [])
-					->debug($debug)
-					->hires(NULL) // no hi res support
-					->render();
-				?>
-			</div>
-		<?php endforeach; ?>
-		<hr>
-		<h3>Max Resolution: 2x, Step 0.5, Lazyload</h3>
-		<?php foreach (['col-xs-12', 'col-md-6 col-lg-4 col-xl-2'] as $cols) : ?>
-			<div class="row">
-				<?= \Config\Services::bootstrap()
-					->dynamicImage($file, "kitties!")
-					->debug($debug)
-					->cols($cols, [])
-					->hires(2)
-					->lazy(TRUE)
-					->render();
-				?>
-			</div>
-		<?php endforeach; ?>
-		<hr>
-		<h3>Max Width: 800px (Max Resolution <?= config('Tomkirsch\Bootstrap\BootstrapConfig')->defaultMaxResolution ?>x)</h3>
-		<?php foreach (['col-xs-12', 'col-md-6 col-lg-4 col-xl-2'] as $cols) : ?>
-			<div class="row">
-				<?= \Config\Services::bootstrap()
-					->dynamicImage($file, "kitties!")
-					->debug($debug)
-					->cols($cols, [])
-					->hires(800)
-					->render();
-				?>
-			</div>
-		<?php endforeach; ?>
-		<h3>Aspect Ratio 2:3 - with &amp; without cropping</h3>
+
+	<div class="container">
+		<h2>Dynamic Image... note there is NO max-width being used here! All images are sized correctly to their containers!</h2>
+		<p>Full container width</p>
 		<div class="row">
-			<?= \Config\Services::bootstrap()
-				->dynamicImage($file, "kitties!")
-				->debug($debug)
-				->cols("col-md-4", [])
-				->ratio("2/3", FALSE)
-				->render();
-			?>
-			<?= \Config\Services::bootstrap()
-				->dynamicImage($file, "kitties!")
-				->debug($debug)
-				->cols("col-md-4", [])
-				->ratio("2/3", TRUE)
-				->render();
-			?>
-		</div>
-		<h3>Aspect Ratio 1:1 - with &amp; without cropping</h3>
-		<div class="row">
-			<?= \Config\Services::bootstrap()
-				->dynamicImage("kitten-portrait-src.jpg", "kitties!")
-				->debug($debug)
-				->cols("col-md-4", [])
-				->ratio(1, FALSE)
-				->render();
-			?>
-			<?= \Config\Services::bootstrap()
-				->dynamicImage("kitten-portrait-src.jpg", "kitties!")
-				->debug($debug)
-				->cols("col-md-4", [])
-				->ratio(1, TRUE)
-				->render();
-			?>
-		</div>
-		<hr>
-		<h3>LQIP Width:100px, LQIP Hex Color</h3>
-		<div class="row">
-			<?= \Config\Services::bootstrap()
-				->dynamicImage($file, "kitties!")
-				->debug($debug)
-				->cols('col-6', ['class' => 'wrapperClass'])
-				->lqip(100)
-				->element("picture", [], ["class" => "img-fluid"]) // when not using ratio, we must specify max-width
-				->render();
-			?>
-			<?= \Config\Services::bootstrap()
-				->dynamicImage($file, "kitties!")
-				->debug($debug)
-				->cols('col-6', ['class' => 'wrapperClass'])
-				->lqip('#FF0000')
-				->element("picture", [], ["class" => "img-fluid"]) // when not using ratio, we must specify max-width
-				->render();
-			?>
-		</div>
-		<hr>
-		<h3>LQIP Lazyload Fade-In (requires JS)</h3>
-		<div class="row">
-			<div class="col-6">
-				<?= \Config\Services::bootstrap()
-					->dynamicImage($file, "kitties!")
-					->debug($debug)
-					->cols('col-6')
-					->ratio(1, TRUE, ["class" => "dyn_fadebox"]) // add fadebox class for css transition & positioning
-					->lazy(TRUE)
-					->lqip(100, [], TRUE) // lqip must be a separate <img> element
-					->render();
-				?>
-			</div>
-			<div class="col-6">
-				<?= \Config\Services::bootstrap()
-					->dynamicImage($file, "kitties!")
-					->debug($debug)
-					->cols('col-6')
-					->ratio(1, TRUE, ["class" => "dyn_fadebox"]) // add fadebox class for css transition & positioning
-					->lazy(TRUE)
-					->lqip('#FF0000', [], TRUE) // lqip must be a separate <img> element
-					->render();
-				?>
+			<div class="col py-2">
+				<?= \Config\Services::bootstrap()->dynamicImage([
+					"file" => $file,
+				]) ?>
 			</div>
 		</div>
-	</div><!-- container -->
+
+		<p>Custom grid with max-height of 300px, while supporting retina</p>
+		<div class="row">
+			<div class="col py-2">
+				<?= \Config\Services::bootstrap()->dynamicImage([
+					"file" => $file,
+					"grid" => [
+						1200 => "1200,300",
+						992 => "480,300",
+						0 => "360,300",
+					],
+				]) ?>
+			</div>
+		</div>
+
+		<p>Bootstrap cols with various LQIP (initial img src)</p>
+		<div class="row">
+			<?= \Config\Services::bootstrap()->dynamicImage([
+				"file" => $file,
+				"colClasses" => "col-md-6 col-lg-3 py-2",
+				"colWrapper" => TRUE,
+				"lqip" => "xs", // the image width at xs container (default)
+			]) ?>
+			<?= \Config\Services::bootstrap()->dynamicImage([
+				"file" => $file,
+				"colClasses" => "col-md-6 col-lg-3 py-2",
+				"colWrapper" => TRUE,
+				"lqip" => "pixel", // transparent pixel
+			]) ?>
+			<?= \Config\Services::bootstrap()->dynamicImage([
+				"file" => $file,
+				"colClasses" => "col-md-6 col-lg-3 py-2",
+				"colWrapper" => TRUE,
+				"lqip" => "#000000", // solid color
+			]) ?>
+			<?= \Config\Services::bootstrap()->dynamicImage([
+				"file" => $file,
+				"colClasses" => "col-md-6 col-lg-3 py-2",
+				"colWrapper" => TRUE,
+				"lqip" => 100, // 100px image
+			]) ?>
+		</div>
+
+		<p>Ratio padding (natural and forced with cropping)</p>
+		<div class="row">
+			<?= \Config\Services::bootstrap()->dynamicImage([
+				"file" => $file,
+				"colClasses" => "col-md-4 py-2",
+				"colWrapper" => TRUE,
+				"ratio"	=> TRUE, // natural ratio
+			]) ?>
+			<?= \Config\Services::bootstrap()->dynamicImage([
+				"file" => $file,
+				"colClasses" => "col-md-4 py-2",
+				"colWrapper" => TRUE,
+				"ratio"	=> "6/2", // crop to 16:2
+				"ratioCrop" => TRUE,
+			]) ?>
+			<?= \Config\Services::bootstrap()->dynamicImage([
+				"file" => $file,
+				"colClasses" => "col-md-4 py-2",
+				"colWrapper" => TRUE,
+				"ratio"	=> 1, // crop to square
+				"ratioCrop" => TRUE,
+			]) ?>
+		</div>
+
+		<p>Also works with portrait orientation</p>
+		<div class="row">
+			<?= \Config\Services::bootstrap()->dynamicImage([
+				"file" => $file2,
+				"colClasses" => "col-md-4 py-2",
+				"colWrapper" => TRUE,
+				"ratio"	=> TRUE, // natural ratio
+			]) ?>
+			<?= \Config\Services::bootstrap()->dynamicImage([
+				"file" => $file2,
+				"colClasses" => "col-md-4 py-2",
+				"colWrapper" => TRUE,
+				"ratio"	=> "6/2", // crop to 16:2
+				"ratioCrop" => TRUE,
+			]) ?>
+			<?= \Config\Services::bootstrap()->dynamicImage([
+				"file" => $file2,
+				"colClasses" => "col-md-4 py-2",
+				"colWrapper" => TRUE,
+				"ratio"	=> 1, // crop to square
+				"ratioCrop" => TRUE,
+			]) ?>
+		</div>
+
+		<p>LQIP + Ratio + Lazyload. Use .dyn_fadebox CSS class to animate the reveal</p>
+		<div class="row">
+			<?= \Config\Services::bootstrap()->dynamicImage([
+				"file" => $file,
+				"query" => ["q" => rand()], // prevent caching
+				"colClasses" => "col-md-4 py-2 dyn_fadebox",
+				"colWrapper" => TRUE,
+				"ratio"	=> 1,
+				"ratioCrop" => TRUE,
+				"lazy" => TRUE,
+				"lpiqIsOwnImg" => TRUE,
+				"lqip" => "xs", // the image width at xs container (default)
+			]) ?>
+			<?= \Config\Services::bootstrap()->dynamicImage([
+				"file" => $file,
+				"query" => ["q" => rand()], // prevent caching
+				"colClasses" => "col-md-4 py-2 dyn_fadebox",
+				"colWrapper" => TRUE,
+				"ratio"	=> 1,
+				"ratioCrop" => TRUE,
+				"lazy" => TRUE,
+				"lpiqIsOwnImg" => TRUE,
+				"lqip" => "#FF0000", // solid color
+			]) ?>
+			<?= \Config\Services::bootstrap()->dynamicImage([
+				"file" => $file,
+				"query" => ["q" => rand()], // prevent caching
+				"colClasses" => "col-md-4 py-2 dyn_fadebox",
+				"colWrapper" => TRUE,
+				"ratio"	=> 1,
+				"ratioCrop" => TRUE,
+				"lazy" => TRUE,
+				"lpiqIsOwnImg" => TRUE,
+				"lqip" => 100, // 100px image
+			]) ?>
+		</div>
+
+		<p>Hard limits on width and/or height</p>
+		<div class="row">
+			<?= \Config\Services::bootstrap()->dynamicImage([
+				"file" => $file,
+				"colClasses" => "col-md-6 py-2",
+				"colWrapper" => TRUE,
+				"hiresX" => 600,
+			]) ?>
+			<?= \Config\Services::bootstrap()->dynamicImage([
+				"file" => $file,
+				"colClasses" => "col-md-6 py-2",
+				"colWrapper" => TRUE,
+				"hiresY" => 300,
+			]) ?>
+		</div>
+
+		<p>Max-height on col</p>
+		<div class="row">
+			<div class="col-md-6 py-2" style="max-height: 350px; overflow:hidden;">
+				<?= \Config\Services::bootstrap()->dynamicImage([
+					"file" => $file,
+					"colClasses" => "col-md-6 py-2",
+					"containerMaxHeight" => 200,
+				]) ?>
+			</div>
+		</div>
+	</div>
 </body>
 
 </html>
