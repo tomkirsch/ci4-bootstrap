@@ -161,7 +161,7 @@ class DynamicImage
 	 * LQIP is separate element? (Requires CSS positioning)
 	 * @var bool
 	 */
-	public $lqipIsOwnImg = FALSE;
+	public $lqipSeparate = FALSE;
 
 	/**
 	 * Prints newlines
@@ -336,14 +336,14 @@ class DynamicImage
 	 * Sets the Low-Quality Image Placeholder (LQIP)
 	 * @param string|int|null $src Possible values - string 'xs': the source image at the smallest bootstrap container size, string 'pixel': a transparent pixel, int width: dynamically resized width in pixels (ie. 100px), string hex: a solid color (ie. '#FF0000'), string otherFileName: an alternate file
 	 * @param array $attr Attributes to attach to the LQIP element
-	 * @param bool $lqipIsOwnImg This must be true if LQIP is an lazy-loaded <img> element. Positioning CSS is required to lay it on top of the <picture>
+	 * @param bool $lqipSeparate This must be true if LQIP is an lazy-loaded <img> element. Positioning CSS is required to lay it on top of the <picture>
 	 */
-	public function lqip(?string $src = NULL, array $attr = [], bool $lqipIsOwnImg = FALSE)
+	public function lqip(?string $src = NULL, array $attr = [], bool $lqipSeparate = FALSE)
 	{
 		$this->lqip = $src;
 		$this->lqipAttr = $attr;
-		$this->lqipIsOwnImg = $lqipIsOwnImg;
-		if ($this->lqipIsOwnImg) {
+		$this->lqipSeparate = $lqipSeparate;
+		if ($this->lqipSeparate) {
 			$this->lazy(TRUE);
 		}
 		return $this;
@@ -491,7 +491,7 @@ class DynamicImage
 		if ($this->lazy) {
 			$imgAttr = $this->ensureAttr('class', 'lazyload', $imgAttr);
 			// is LQIP it's own image? then set the picture img to a transparent pixel
-			if ($this->lqipIsOwnImg) {
+			if ($this->lqipSeparate) {
 				$imgAttr['src'] = $this->pixel64();
 			} else {
 				// never lazy load inlined image data
@@ -511,7 +511,7 @@ class DynamicImage
 	 */
 	protected function renderLqipOwnImg(): string
 	{
-		if (!$this->lqip || !$this->lqipIsOwnImg) return "";
+		if (!$this->lqip || !$this->lqipSeparate) return "";
 		return '<img ' . stringify_attributes($this->getLqipAttr(TRUE)) . '>' . $this->nl();
 	}
 

@@ -186,7 +186,7 @@ $file2 = 'kitten-portrait-src.jpg';
 				"ratio"	=> 1,
 				"ratioCrop" => TRUE,
 				"lazy" => TRUE,
-				"lpiqIsOwnImg" => TRUE,
+				"lqipSeparate" => TRUE,
 				"lqip" => "xs", // the image width at xs container (default)
 			]) ?>
 			<?= \Config\Services::bootstrap()->dynamicImage([
@@ -197,7 +197,7 @@ $file2 = 'kitten-portrait-src.jpg';
 				"ratio"	=> 1,
 				"ratioCrop" => TRUE,
 				"lazy" => TRUE,
-				"lpiqIsOwnImg" => TRUE,
+				"lqipSeparate" => TRUE,
 				"lqip" => "#FF0000", // solid color
 			]) ?>
 			<?= \Config\Services::bootstrap()->dynamicImage([
@@ -208,7 +208,7 @@ $file2 = 'kitten-portrait-src.jpg';
 				"ratio"	=> 1,
 				"ratioCrop" => TRUE,
 				"lazy" => TRUE,
-				"lpiqIsOwnImg" => TRUE,
+				"lqipSeparate" => TRUE,
 				"lqip" => 100, // 100px image
 			]) ?>
 		</div>
