@@ -371,7 +371,7 @@ class DynamicImage
 	/**
 	 * Renders the <picture> element
 	 */
-	public function render(?array $options = NULL): string
+	public function render(?array $options = []): string
 	{
 		// reset grid is true? then do it now so we don't keep the previous grid
 		if (!empty($options["resetGrid"])) {
