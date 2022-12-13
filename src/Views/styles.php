@@ -32,13 +32,15 @@
             height: 100%;
         }
 
-        [data-dyn_fit][dyn_wrapper_orient="portrait"] img {
+        [data-dyn_fit="crop"][dyn_wrapper_orient="portrait"] img,
+        [data-dyn_fit="contain"][dyn_wrapper_orient="landscape"] img {
             max-width: none !important;
             width: auto;
             height: 100%;
         }
 
-        [data-dyn_fit][dyn_wrapper_orient="landscape"] img {
+        [data-dyn_fit="crop"][dyn_wrapper_orient="landscape"] img,
+        [data-dyn_fit="contain"][dyn_wrapper_orient="portrait"] img {
             max-width: none !important;
             width: 100%;
             height: auto;
