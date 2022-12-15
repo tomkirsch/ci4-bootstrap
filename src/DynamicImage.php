@@ -449,7 +449,6 @@ class DynamicImage
 	protected function renderPicture(): string
 	{
 		$this->pictureAttr ??= [];
-		$this->pictureAttr = $this->ensureAttr("data-dyn_src_orient", $this->getOrientation($this->origWidth, $this->origHeight));
 		// LQIP outside of <picture>.. we place it first, so it's behind the picture
 		$out = $this->renderLqipOwnImg();
 		// picture
@@ -586,6 +585,8 @@ class DynamicImage
 
 		$ratioWrapperAttr = $this->getRatioAttr($this->ratioWrapperAttr);
 		$ratioWrapperAttr["dyn_wrapper_orient"] = $this->parseRatio($this->ratio) > 1 ? "portrait" : "landscape";
+		$ratioWrapperAttr["data-dyn_src_orient"] = $this->getOrientation($this->origWidth, $this->origHeight);
+
 		$fit = "contain";
 		$cropAttr = NULL;
 		// is the ratio different than the source image? write the cropping div, if ratioCrop is true
