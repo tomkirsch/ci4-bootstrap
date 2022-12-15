@@ -11,7 +11,8 @@
         }
 
         [data-dyn_fit="contain"][dyn_wrapper_orient="landscape"][data-dyn_src_orient="portrait"] img {
-            height: 100%;
+            height: auto;
+            max-height: 100%;
             width: auto;
             max-width: none;
         }
