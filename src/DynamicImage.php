@@ -449,6 +449,7 @@ class DynamicImage
 	protected function renderPicture(): string
 	{
 		$this->pictureAttr ??= [];
+		$this->pictureAttr = $this->ensureAttr("data-dyn_src_orient", $this->getOrientation($this->origWidth, $this->origHeight));
 		// LQIP outside of <picture>.. we place it first, so it's behind the picture
 		$out = $this->renderLqipOwnImg();
 		// picture
