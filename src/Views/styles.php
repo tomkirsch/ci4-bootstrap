@@ -6,14 +6,13 @@
         }
 
         [style*="--aspect-ratio"] img {
-            max-width: 100%;
+            width: 100%;
             height: auto;
         }
 
         [data-dyn_fit="contain"][dyn_wrapper_orient="landscape"][data-dyn_src_orient="portrait"] img {
-            height: auto;
-            max-height: 100%;
             width: auto;
+            height: 100%;
             max-width: none;
         }
 
