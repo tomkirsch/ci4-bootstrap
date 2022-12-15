@@ -11,15 +11,15 @@
         }
 
         [dyn_wrapper_orient="landscape"] [data-dyn_src_orient="portrait"] img {
-            height: 100%;
-            width: auto;
-            max-width: none;
-        }
-
-        [dyn_wrapper_orient="portrait"] [data-dyn_src_orient="landscape"] img {
             max-width: 100%;
             height: auto;
             max-height: none;
+        }
+
+        [dyn_wrapper_orient="portrait"] [data-dyn_src_orient="landscape"] img {
+            height: 100%;
+            width: auto;
+            max-width: none;
         }
 
         [data-dyn_fit="crop"] {
