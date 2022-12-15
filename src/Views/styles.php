@@ -10,13 +10,7 @@
             height: auto;
         }
 
-        [dyn_wrapper_orient="landscape"] [data-dyn_src_orient="portrait"] img {
-            max-width: 100%;
-            height: auto;
-            max-height: none;
-        }
-
-        [dyn_wrapper_orient="portrait"] [data-dyn_src_orient="landscape"] img {
+        [data-dyn_fit="contain"][dyn_wrapper_orient="landscape"][data-dyn_src_orient="portrait"] img {
             height: 100%;
             width: auto;
             max-width: none;
@@ -32,15 +26,13 @@
             height: 100%;
         }
 
-        [data-dyn_fit="crop"][dyn_wrapper_orient="portrait"] img,
-        [data-dyn_fit="contain"][dyn_wrapper_orient="landscape"] img {
+        [data-dyn_fit="crop"][dyn_wrapper_orient="portrait"] img {
             max-width: none !important;
             width: auto;
             height: 100%;
         }
 
-        [data-dyn_fit="crop"][dyn_wrapper_orient="landscape"] img,
-        [data-dyn_fit="contain"][dyn_wrapper_orient="portrait"] img {
+        [data-dyn_fit="crop"][dyn_wrapper_orient="landscape"] img {
             max-width: none !important;
             width: 100%;
             height: auto;
