@@ -715,7 +715,7 @@ class DynamicImage
 		if ($maxResolution < 1) throw new \Exception("Invalid max resolution: $maxResolution");
 
 		// if hiresY was specified, ensure we use it
-		$maxHeight = $this->hiresY === "source" ? $this->origHeight : $this->hiresY;
+		$maxHeight = $this->hiresY === self::HIRES_SOURCE ? $this->origHeight : $this->hiresY;
 		if ($maxHeight !== NULL && !is_int($maxHeight)) throw new \Exception("Invalid hires height: $maxHeight");
 
 		$this->resolutionDict = [];
@@ -732,7 +732,7 @@ class DynamicImage
 			for ($i = $maxResolution; $i >= 1; $i -= $this->resolutionStep) {
 				// calculate the final dimensions at this resolution, but limiting the width (and height if needed)
 				list($hiresWidth, $hiresHeight) = $this->reproportion(floor($containerWidth * $i), floor($containerHeight * $i));
-				if ($hiresWidth > $maxWidth || $hiresHeight > $maxHeight) continue; // resulting image was too big, skip this resolution
+				if ($hiresWidth > $maxWidth || ($maxHeight && $hiresHeight > $maxHeight)) continue; // resulting image was too big, skip this resolution
 				$this->resolutionDict[$mediaWidth] ??= [];
 				$this->resolutionDict[$mediaWidth][(string) $i] = $hiresWidth;
 			}
