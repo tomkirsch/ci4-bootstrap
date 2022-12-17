@@ -737,6 +737,10 @@ class DynamicImage
 				$this->resolutionDict[$mediaWidth][(string) $i] = $hiresWidth;
 			}
 		}
+		// was everything too big? just show the max width
+		if (empty($this->resolutionDict)) {
+			$this->resolutionDict[0][1] = $maxWidth;
+		}
 	}
 
 	/**
