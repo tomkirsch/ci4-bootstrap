@@ -68,13 +68,13 @@
             }
         }
 
-        .dyn_fadebox [data-dyn_lqip="integrated"] {
+        .dyn_fadebox picture {
             opacity: 0;
             transition: opacity 400ms;
         }
 
-        .dyn_fadebox.dyn_lazyloaded [data-dyn_lqip="integrated"],
-        .dyn_fadebox .dyn_lazyloaded [data-dyn_lqip="integrated"] {
+        .dyn_fadebox.dyn_lazyloaded picture,
+        .dyn_fadebox .dyn_lazyloaded picture {
             opacity: 1;
         }
 
