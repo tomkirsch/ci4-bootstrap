@@ -242,6 +242,30 @@ class DynamicImage
 	}
 
 	/**
+	 * Utility  - resize image maintaining aspect ratio
+	 */
+	public function reproportion(int $width, int $height = 0, string $masterDim = 'auto'): array
+	{
+		if ($masterDim !== 'width' && $masterDim !== 'height') {
+			if ($width > 0 && $height > 0) {
+				$masterDim = ((($this->origHeight / $this->origWidth) - ($height / $width)) < 0) ? 'width' : 'height';
+			} else {
+				$masterDim = ($height === 0) ? 'width' : 'height';
+			}
+		} elseif (($masterDim === 'width' && $width === 0) || ($masterDim === 'height' && $height === 0)
+		) {
+			throw new \Exception("Invalid sizes passed");
+		}
+
+		if ($masterDim === 'width') {
+			$height = (int) floor($width * $this->origHeight / $this->origWidth);
+		} else {
+			$width = (int) floor($this->origWidth * $height / $this->origHeight);
+		}
+		return [$width, $height];
+	}
+
+	/**
 	 *  Sets the source file to read; $dest can be used to dynamically rename the file; $query can pass a query string to the dest filename string
 	 * 
 	 * @param string $file Local source image file
@@ -832,30 +856,6 @@ class DynamicImage
 			}
 		}
 		return floatval($ratio);
-	}
-
-	/**
-	 * Resize image maintaining aspect ratio
-	 */
-	protected function reproportion(int $width, int $height = 0, string $masterDim = 'auto'): array
-	{
-		if ($masterDim !== 'width' && $masterDim !== 'height') {
-			if ($width > 0 && $height > 0) {
-				$masterDim = ((($this->origHeight / $this->origWidth) - ($height / $width)) < 0) ? 'width' : 'height';
-			} else {
-				$masterDim = ($height === 0) ? 'width' : 'height';
-			}
-		} elseif (($masterDim === 'width' && $width === 0) || ($masterDim === 'height' && $height === 0)
-		) {
-			throw new \Exception("Invalid sizes passed");
-		}
-
-		if ($masterDim === 'width') {
-			$height = (int) floor($width * $this->origHeight / $this->origWidth);
-		} else {
-			$width = (int) floor($this->origWidth * $height / $this->origHeight);
-		}
-		return [$width, $height];
 	}
 
 	/**
