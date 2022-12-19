@@ -21,6 +21,13 @@ class Bootstrap
 	 */
 	protected $dynamicImage;
 
+	/**
+	 * The StaticImage instance
+	 * 
+	 * @var StaticImage
+	 */
+	protected $staticImage;
+
 	public function __construct($config = NULL)
 	{
 		$this->config = $config ?? new BootstrapConfig();
@@ -34,6 +41,17 @@ class Bootstrap
 		if (!array_key_exists('v' . $version, $this->config->containers)) throw new \Exception("Bootstrap v$version is not supported, please add data to BootstrapConfig.");
 		$this->config->bsVersion = $version;
 		return $this;
+	}
+
+	/**
+	 * Fetch the shared StaticImage class. See class for usage.
+	 */
+	public function staticImage(): StaticImage
+	{
+		if (!$this->staticImage) {
+			$this->staticImage = new StaticImage($this->config);
+		}
+		return $this->staticImage;
 	}
 
 	/**

@@ -54,7 +54,7 @@ class BootstrapConfig extends BaseConfig
 	/**
 	 * DynamicImage - You can use a custom function to generate the public-facing dynamic image filename.
 	 */
-	public function dynamicImageFileName(string $src, string $ext, int $width)
+	public function dynamicImageFileName(string $src, string $ext, int $width): ?string
 	{
 		$file = $src . '.' . $ext;
 		$params = ['f' => $file, 'w' => $width];

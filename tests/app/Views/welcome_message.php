@@ -76,6 +76,18 @@ $file2 = 'kitten-portrait-src.jpg';
 	</div>
 
 	<div class="container">
+		<h2>Static Image</h2>
+		<picture>
+			<?= \Config\Services::bootstrap()->staticImage()->renderSources([
+				"prettyPrint" => TRUE,
+				"imgAttr" => ["class" => "img-fluid"], // optional - creates the <img>
+				"widths" => [2080, 1040, 520, 260],
+				"file" => function ($width, $resolution) {
+					return "kitten-$width.jpg";
+				},
+			]) ?>
+		</picture>
+
 		<h2>Dynamic Image... note there is NO max-width being used here! All images are sized correctly to their containers!</h2>
 		<p>Full container width</p>
 		<div class="row">
