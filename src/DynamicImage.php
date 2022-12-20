@@ -603,12 +603,12 @@ class DynamicImage
 		if (empty($this->ratio)) return "";
 
 		$this->ratioWrapperAttr ??= [];
-		$containerRatio = $this->parseRatio($this->ratio);
+		$containerRatio = $this->parseRatio($this->ratio === TRUE ? "$this->origWidth/$this->origHeight" : $this->ratio);
 		$sourceRatio = $this->sourceRatio();
 		$out = "";
 
 		$ratioWrapperAttr = $this->getRatioAttr($this->ratioWrapperAttr);
-		$ratioWrapperAttr["dyn_wrapper_orient"] = $this->parseRatio($this->ratio) > 1 ? "portrait" : "landscape";
+		$ratioWrapperAttr["dyn_wrapper_orient"] = $containerRatio > 1 ? "portrait" : "landscape";
 		$ratioWrapperAttr["data-dyn_src_orient"] = $this->getOrientation($this->origWidth, $this->origHeight);
 
 		$fit = "contain";
