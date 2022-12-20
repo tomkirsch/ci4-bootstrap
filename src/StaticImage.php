@@ -82,7 +82,8 @@ class StaticImage
     }
 
     /**
-     * Renders <source> You must pass an array of widths. If an assoc array, the keys will be used as media widths
+     * Renders <source>s and optional <img>, ensuring the image is always bigger than the media width.
+     * You must pass an array of widths. If an assoc array, the keys will be used as media widths.
      */
     public function renderSources(array $options = []): string
     {
@@ -105,8 +106,22 @@ class StaticImage
         if (empty($this->file)) throw new \Exception("No file callback given");
 
         $out = "";
+        $keys = array_keys($this->widths);
+        arsort($keys); // desc order
         foreach ($this->widths as $key => $width) {
+            // assume if the key is less than 10, it's not an assoc array
             $mediaWidth = $key < 10 ? $width : $key;
+
+            // find the bigger image
+            $index = array_search($key, $keys);
+            if ($index > 0) {
+                $width = $this->widths[$keys[$index - 1]];
+            } else {
+                // no bigger image exists, continue
+                continue;
+            }
+
+            // compile sources
             $sources = [];
             for ($res = 1; $res <= $this->maxResolutionFactor; $res += $this->resolutionStep) {
                 $resWidth = $width * $res;
