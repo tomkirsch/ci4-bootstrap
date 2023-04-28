@@ -1,15 +1,19 @@
 # Bootstrap Library for CI4
 
 ## Installation
+
 Add the requirement to `composer.json`:
+
 ```
     "require": {
 		"tomkirsch/bootstrap":"^1"
 	}
 ```
+
 Update your project: `composer install --no-dev --optimize-autoloader`
 
 Create the config file `Config\Bootstrap.php` and set your preferences. You MUST extend `Tomkirsch/Bootstrap/BootstrapConfig`
+
 ```
 <?php namespace Config;
 
@@ -22,43 +26,45 @@ class Bootstrap extends BootstrapConfig{
 		$params = ['f'=>$file, 'w'=>$width];
 		return base_url('resize?'.http_build_query($params));
 	}
-	
+
 	// newlines in output
-	public $prettyPrint = FALSE;
-	
+	public bool $prettyPrint = FALSE;
+
 	// default element, 'img' or 'picture'
-	public $defaultElement = 'picture';
-	
+	public string $defaultElement = 'picture';
+
 	// use lazyload by default
-	public $defaultIsLazy = FALSE;
-	
+	public bool $defaultIsLazy = FALSE;
+
 	// default hires setting
-	public $defaultHires = 'source';
-	
+	public string $defaultHires = 'source';
+
 	// default LQIP (low quality image placeholder)
-	public $defaultLqip = 'xs';
-	
+	public string $defaultLqip = 'xs';
+
 	// use padding-bottom hack on wrapper
-	public $defaultRatioPaddingClass = 'ratiobox';
-	
+	public string $defaultRatioPaddingClass = 'ratiobox';
+
 	// maximum supported resolution factor (2x, 3x, etc)
-	public $defaultMaxResolution = 4;
-	
+	public float $defaultMaxResolution = 4;
+
 	// default resolution step to get from 1 to $maxResolutionFactor
-	public $defaultResolutionStep = 1;
-	
+	public float $defaultResolutionStep = 1;
+
 	// number of columns in the grid
-	public $gridCols = 12;
-	
+	public int $gridCols = 12;
+
 	// bootstrap version. used to get the correct container/breakpoint
-	public $bsVersion = '4';
+	public string $bsVersion = '5';
 }
 ```
+
 The `dynamicImageFileName()` function should generate a URL/path to a controller that serves dynamic images.
 
 To use containers in a newer version of bootstrap, just add them to the `containers` and `breakpoints` arrays, then set $bsVersion to the array key. See `Tomkirsch\Bootstrap\BootstrapConfig` for more info.
 
 Create the service in `Config\Services.php`:
+
 ```
 	public static function bootstrap($getShared = true, $config=NULL){
 		if(!$config) $config = config('bootstrap');
@@ -67,6 +73,7 @@ Create the service in `Config\Services.php`:
 ```
 
 Create your image resizer controller. The directives here must match the output from `dynamicImageFileName()` in the config class. Here's a quick example:
+
 ```
 class Resize extends BaseController{
 	public function index(){
@@ -87,6 +94,7 @@ class Resize extends BaseController{
 ```
 
 If you'd like to use padding ratio elements, or lazyload transitions, define them in your CSS.
+
 ```
 	.ratiobox{
 		position: relative;
@@ -118,14 +126,13 @@ If you'd like to use padding ratio elements, or lazyload transitions, define the
 Include lazysizes JS
 `<script src="https://cdnjs.cloudflare.com/ajax/libs/lazysizes/5.3.0/lazysizes.min.js" integrity="sha512-JrL1wXR0TeToerkl6TPDUa9132S3PB1UeNpZRHmCe6TxS43PFJUcEYUhjJb/i63rSd+uRvpzlcGOtvC/rDQcDg==" crossorigin="anonymous"></script>`
 
-
 ## Usage
 
 ```
 	<div class="container mb-3">
 		<h3>Flex Columns</h3>
 		<div class="card-deck">
-			<?php 
+			<?php
 			$map = [
 				'sm'=>2, // wrap every 2 cards on sm
 				'md'=>3, // wrap every 3 cards on md

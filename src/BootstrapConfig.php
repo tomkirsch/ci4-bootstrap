@@ -9,17 +9,17 @@ class BootstrapConfig extends BaseConfig
 	/**
 	 * Bootstrap version. used to get the correct container/breakpoint 
 	 */
-	public $bsVersion = '5';
+	public string $bsVersion = '5';
 
 	/**
 	 * Use newlines in HTML output
 	 */
-	public $prettyPrint = FALSE;
+	public bool $prettyPrint = FALSE;
 
 	/**
 	 * Container widths and breakpoints. Make sure these are ordered LARGEST to SMALLEST! 
 	 */
-	public $containers = [
+	public array $containers = [
 		'v4' => [
 			'xl' => 1140,
 			'lg' => 960,
@@ -35,7 +35,7 @@ class BootstrapConfig extends BaseConfig
 		],
 	];
 
-	public $breakpoints = [
+	public array $breakpoints = [
 		'v4' => [
 			'xl' => 1200,
 			'lg' => 992,
@@ -64,53 +64,53 @@ class BootstrapConfig extends BaseConfig
 	/**
 	 * DynamicImage - Col gutter width in pixels
 	 */
-	public $defaultGutterWidth = 12;
+	public int $defaultGutterWidth = 12;
 
 	/**
 	 * DynamicImage - number of columns in the grid 
 	 */
-	public $gridCols = 12;
+	public int $gridCols = 12;
 
 	/**
 	 * DynamicImage - Default element to use, 'img' or 'picture'
 	 */
-	public $defaultElement = 'picture';
+	public string $defaultElement = 'picture';
 
 	/**
 	 * DynamicImage - Default use data-src and data-srcset instead of src and srcset
 	 */
-	public $defaultIsLazy = FALSE;
+	public bool $defaultIsLazy = FALSE;
 
 	/**
 	 * DynamicImage - Default size for hires. Use "source" for the source image's width, or a pixel value to restrict viewing
 	 */
-	public $defaultHiresWidth = 'source';
+	public string $defaultHiresWidth = 'source';
 
 	/**
 	 * DynamicImage - Use a pixel value to restrict image height
 	 */
-	public $defaultHiresHeight = 'source';
+	public string $defaultHiresHeight = 'source';
 
 	/**
 	 * DynamicImage - default LQIP (low quality image placeholder) 
 	 */
-	public $defaultLqip = 'xs';
+	public string $defaultLqip = 'xs';
 
 	/**
 	 * DynamicImage - use padding hack by default 
 	 */
-	public $defaultUseRatio = FALSE;
+	public bool $defaultUseRatio = FALSE;
 
 	/**
 	 * DynamicImage - maximum supported resolution factor (2x, 3x, etc) 
 	 */
-	public $defaultMaxResolution = 2;
+	public float $defaultMaxResolution = 2;
 
 	/**
 	 * DynamicImage - default resolution step to get from 1 to $maxResolutionFactor.
 	 * A lower number will create more sources
 	 */
-	public $defaultResolutionStep = 0.5;
+	public float $defaultResolutionStep = 0.5;
 
 
 	/**

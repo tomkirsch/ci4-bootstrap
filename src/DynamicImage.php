@@ -23,17 +23,17 @@ class DynamicImage
 	 * Attributes for the <picture> element
 	 * @var array
 	 */
-	public $pictureAttr = [];
+	public array $pictureAttr = [];
 
 	/**
 	 * Attributes for the <img> element
 	 * @var array
 	 */
-	public $imgAttr = [];
+	public array $imgAttr = [];
 
 	/**
 	 * The image file
-	 * @var Image
+	 * @var Image|null
 	 */
 	public $file;
 
@@ -41,25 +41,26 @@ class DynamicImage
 	 * Source image width/height
 	 * @var int
 	 */
-	public $origWidth, $origHeight;
+	public int $origWidth;
+	public int $origHeight;
 
 	/**
 	 * The public-facing filename (.htaccess rewrite)
 	 * @var string
 	 */
-	public $publicFile;
+	public string $publicFile;
 
 	/**
 	 * The public-facing file extension
 	 * @var string
 	 */
-	public $publicFileExt;
+	public string $publicFileExt;
 
 	/**
 	 * <img> alt attribute
 	 * @var string
 	 */
-	public $alt;
+	public string $alt;
 
 	/**
 	 * GET query to append to the publicFile
@@ -71,79 +72,79 @@ class DynamicImage
 	 * Raw grid layout dimensions, screen widths as keys and values as container widths (can also specify heights with CSV string) (ex: [1200=>190, 992=>480, 768=>"500,350"])
 	 * @var array
 	 */
-	public $grid;
+	public array $grid;
 
 	/**
 	 * Original col- classes
 	 * @var string
 	 */
-	public $colClasses;
+	public string $colClasses;
 
 	/**
 	 * Whether to create the col-* class div on render
 	 * @var bool
 	 */
-	public $colWrapper = FALSE;
+	public bool $colWrapper = FALSE;
 
 	/**
 	 * Attributes for the col wrapper
 	 * @var null|array
 	 */
-	public $colWrapperAttr;
+	public array $colWrapperAttr;
 
 	/**
 	 * Bootstrap gutter width
 	 * @var int
 	 */
-	public $gutterWidth = 0;
+	public int $gutterWidth = 0;
 
 	/**
 	 * Max-height of container to prevent larger images from being used
 	 * @var int
 	 */
-	public $containerMaxHeight = 0;
+	public int $containerMaxHeight = 0;
 
 	/**
 	 * Maximum supported resolution
 	 * @var float
 	 */
-	public $maxResolutionFactor = 1;
+	public float $maxResolutionFactor = 1;
 
 	/**
 	 * Resolution steps
 	 * @var float
 	 */
-	public $resolutionStep = 0.5;
+	public float $resolutionStep = 0.5;
 
 	/**
 	 * Maximum width/height to offer the public. These are hard limits that will never be surpassed.
 	 * @var int
 	 */
-	public $hiresX, $hiresY;
+	public int $hiresX, $hiresY;
 
 	/**
 	 * Ratio setting 
 	 * @var bool|float|string
 	 */
-	public $ratio = FALSE;
+	public bool $ratio = FALSE;
 
 	/**
 	 * Whether image should be cropped to ratio
 	 * @var bool
 	 */
-	public $ratioCrop = FALSE;
+	public bool $ratioCrop = FALSE;
 
 	/**
 	 * Ratio wrapper div attributes
 	 * @var array
 	 */
-	public $ratioWrapperAttr = [];
+	public array $ratioWrapperAttr = [];
 
 	/**
 	 * Whether image is lazy-loaded (requires lazysizes JS)
 	 * @var bool
 	 */
-	public $lazy = FALSE;
+	public bool $lazy = FALSE;
 
 	/**
 	 * Low quality image placeholder setting
@@ -161,19 +162,19 @@ class DynamicImage
 	 * LQIP is separate element? (Requires CSS positioning)
 	 * @var bool
 	 */
-	public $lqipSeparate = FALSE;
+	public bool $lqipSeparate = FALSE;
 
 	/**
 	 * Prints newlines
 	 * @var bool
 	 */
-	public $prettyPrint = FALSE;
+	public bool $prettyPrint = FALSE;
 
 	/**
 	 * Reset grid after render. Set to FALSE to optimize loops that use the same grid
 	 * @var bool
 	 */
-	public $resetGrid = TRUE;
+	public bool $resetGrid = TRUE;
 
 	/**
 	 * Dictionary of screen widths and resolution factors
@@ -185,10 +186,11 @@ class DynamicImage
 	 * Tracks wrappers to close divs
 	 * @var int
 	 */
-	protected $wrapCount;
+	protected int $wrapCount;
 
 	/**
 	 * Array of col widths parsed from $colClasses
+	 * @var array
 	 */
 	protected $cols;
 

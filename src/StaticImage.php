@@ -12,7 +12,7 @@ class StaticImage
      * List of image widths that exist
      * @var array
      */
-    public $widths = [];
+    public array $widths = [];
 
     /**
      * The public-facing filename (.htaccess rewrite)
@@ -24,31 +24,31 @@ class StaticImage
      * <img> alt attribute
      * @var string
      */
-    public $alt;
+    public string $alt;
 
     /**
      * Maximum supported resolution
      * @var float
      */
-    public $maxResolutionFactor = 1;
+    public float $maxResolutionFactor = 1;
 
     /**
      * Resolution steps
      * @var float
      */
-    public $resolutionStep = 0.5;
+    public float $resolutionStep = 0.5;
 
     /**
      * Whether image is lazy-loaded (requires lazysizes JS)
      * @var bool
      */
-    public $lazy = FALSE;
+    public bool $lazy = FALSE;
 
     /**
      * Prints newlines
      * @var bool
      */
-    public $prettyPrint = FALSE;
+    public bool $prettyPrint = FALSE;
 
     /**
      * Renders the <img> attribute
