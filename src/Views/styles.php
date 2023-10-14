@@ -1,6 +1,9 @@
 <?php if (!empty($withTag)) : ?>
     <style type="text/css">
-        <?php endif ?>[style*="--aspect-ratio"]> :first-child,
+        <?php endif ?>
+
+        /* Bootstrap - DynamicImage */
+        [style*="--aspect-ratio"]> :first-child,
         [style*="--aspect-ratio"]>picture {
             width: 100%;
         }
@@ -8,6 +11,13 @@
         [style*="--aspect-ratio"] img {
             width: 100%;
             height: auto;
+        }
+
+        [data-dyn_fit="contain"] img {
+            width: auto;
+            height: auto;
+            max-width: 100%;
+            max-height: 100%;
         }
 
         [data-dyn_fit="contain"][dyn_wrapper_orient="landscape"][data-dyn_src_orient="portrait"] img {
@@ -38,13 +48,13 @@
             height: auto;
         }
 
-        [style*="--aspect-ratio"]>:first-child[data-dyn_crop] {
+        [style*="--aspect-ratio"]> :first-child[data-dyn_crop] {
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
         }
 
-        @supports (--custom:property) {
+        @supports (--custom: property) {
             [style*="--aspect-ratio"] {
                 position: relative;
             }

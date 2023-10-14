@@ -21,46 +21,40 @@ class DynamicImage
 
 	/**
 	 * Attributes for the <picture> element
-	 * @var array
 	 */
 	public array $pictureAttr = [];
 
 	/**
 	 * Attributes for the <img> element
-	 * @var array
 	 */
 	public array $imgAttr = [];
 
 	/**
 	 * The image file
-	 * @var Image|null
+	 * @var string|null|Image
 	 */
 	public $file;
 
 	/**
 	 * Source image width/height
-	 * @var int
 	 */
-	public int $origWidth;
-	public int $origHeight;
+	public ?int $origWidth;
+	public ?int $origHeight;
 
 	/**
 	 * The public-facing filename (.htaccess rewrite)
-	 * @var string
 	 */
-	public string $publicFile;
+	public ?string $publicFile;
 
 	/**
 	 * The public-facing file extension
-	 * @var string
 	 */
-	public string $publicFileExt;
+	public ?string $publicFileExt;
 
 	/**
 	 * <img> alt attribute
-	 * @var string
 	 */
-	public string $alt;
+	public ?string $alt;
 
 	/**
 	 * GET query to append to the publicFile
@@ -70,15 +64,13 @@ class DynamicImage
 
 	/**
 	 * Raw grid layout dimensions, screen widths as keys and values as container widths (can also specify heights with CSV string) (ex: [1200=>190, 992=>480, 768=>"500,350"])
-	 * @var array
 	 */
-	public array $grid;
+	public ?array $grid;
 
 	/**
 	 * Original col- classes
-	 * @var string
 	 */
-	public string $colClasses;
+	public ?string $colClasses;
 
 	/**
 	 * Whether to create the col-* class div on render
@@ -88,45 +80,39 @@ class DynamicImage
 
 	/**
 	 * Attributes for the col wrapper
-	 * @var null|array
 	 */
-	public array $colWrapperAttr;
+	public ?array $colWrapperAttr;
 
 	/**
 	 * Bootstrap gutter width
-	 * @var int
 	 */
 	public int $gutterWidth = 0;
 
 	/**
 	 * Max-height of container to prevent larger images from being used
-	 * @var int
 	 */
 	public int $containerMaxHeight = 0;
 
 	/**
 	 * Maximum supported resolution
-	 * @var float
 	 */
 	public float $maxResolutionFactor = 1;
 
 	/**
 	 * Resolution steps
-	 * @var float
 	 */
 	public float $resolutionStep = 0.5;
 
 	/**
 	 * Maximum width/height to offer the public. These are hard limits that will never be surpassed.
-	 * @var int
 	 */
-	public int $hiresX, $hiresY;
+	public ?int $hiresX, $hiresY;
 
 	/**
 	 * Ratio setting 
 	 * @var bool|float|string
 	 */
-	public bool $ratio = FALSE;
+	public $ratio = FALSE;
 
 	/**
 	 * Whether image should be cropped to ratio
@@ -136,13 +122,11 @@ class DynamicImage
 
 	/**
 	 * Ratio wrapper div attributes
-	 * @var array
 	 */
 	public array $ratioWrapperAttr = [];
 
 	/**
 	 * Whether image is lazy-loaded (requires lazysizes JS)
-	 * @var bool
 	 */
 	public bool $lazy = FALSE;
 
@@ -154,45 +138,38 @@ class DynamicImage
 
 	/**
 	 * LQIP attributes
-	 * @var null|array
 	 */
-	public $lqipAttr;
+	public ?array $lqipAttr;
 
 	/**
 	 * LQIP is separate element? (Requires CSS positioning)
-	 * @var bool
 	 */
 	public bool $lqipSeparate = FALSE;
 
 	/**
 	 * Prints newlines
-	 * @var bool
 	 */
 	public bool $prettyPrint = FALSE;
 
 	/**
 	 * Reset grid after render. Set to FALSE to optimize loops that use the same grid
-	 * @var bool
 	 */
 	public bool $resetGrid = TRUE;
 
 	/**
 	 * Dictionary of screen widths and resolution factors
-	 * @var array
 	 */
-	protected $resolutionDict;
+	protected ?array $resolutionDict;
 
 	/**
 	 * Tracks wrappers to close divs
-	 * @var int
 	 */
-	protected int $wrapCount;
+	protected ?int $wrapCount;
 
 	/**
 	 * Array of col widths parsed from $colClasses
-	 * @var array
 	 */
-	protected $cols;
+	protected ?array $cols;
 
 	/**
 	 * Config instance
@@ -408,7 +385,7 @@ class DynamicImage
 		foreach ($options as $option => $val) {
 			// anything passed in $config takes precedent
 			if (property_exists($this, $option)) {
-				$this->$option = $val;
+				$this->setVal($option, $val);
 			}
 		}
 
@@ -610,27 +587,33 @@ class DynamicImage
 		$out = "";
 
 		$ratioWrapperAttr = $this->getRatioAttr($this->ratioWrapperAttr);
-		$ratioWrapperAttr["dyn_wrapper_orient"] = $containerRatio > 1 ? "portrait" : "landscape";
+		$ratioWrapperAttr["dyn_wrapper_orient"] = $containerRatio < 1 ? "portrait" : "landscape";
 		$ratioWrapperAttr["data-dyn_src_orient"] = $this->getOrientation($this->origWidth, $this->origHeight);
 
-		$fit = "contain";
+		$fit = "none";
 		$cropAttr = NULL;
-		// is the ratio different than the source image? write the cropping div, if ratioCrop is true
-		if ($this->ratioCrop && round($containerRatio, 4) !== round($sourceRatio, 4)) {
-			$fit = "crop";
-			$orientation = $this->getOrientation($this->origWidth, $this->origHeight);
-			$cropAttr = $this->getRatioAttr();
-			$containerRatio *= 100;
-			$sourceRatio *= 100;
-			if ($containerRatio === $sourceRatio) {
-				$cropAttr["style"] .= ";padding-bottom:$sourceRatio%";
-			} else {
-				if ($sourceRatio < $containerRatio) {
-					$sourceRatio = (100 * 100) / $sourceRatio;
+		// is the ratio different than the source image? 
+		if (round($containerRatio, 4) !== round($sourceRatio, 4)) {
+			//write the cropping div, if ratioCrop is true
+			if ($this->ratioCrop) {
+				$fit = "crop";
+				$orientation = $this->getOrientation($this->origWidth, $this->origHeight);
+				$cropAttr = $this->getRatioAttr();
+				$containerRatio *= 100;
+				$sourceRatio *= 100;
+				if ($containerRatio === $sourceRatio) {
+					$cropAttr["style"] .= ";padding-bottom:$sourceRatio%";
+				} else {
+					if ($sourceRatio < $containerRatio) {
+						$sourceRatio = (100 * 100) / $sourceRatio;
+					}
+					$ratioSide = ($orientation === 'landscape') ? 'right' : 'bottom';
+					$otherSide = ($orientation === 'landscape') ? 'bottom' : 'right';
+					$cropAttr["style"] .= ";padding-$otherSide:$containerRatio%;padding-$ratioSide:$sourceRatio%";
 				}
-				$ratioSide = ($orientation === 'landscape') ? 'right' : 'bottom';
-				$otherSide = ($orientation === 'landscape') ? 'bottom' : 'right';
-				$cropAttr["style"] .= ";padding-$otherSide:$containerRatio%;padding-$ratioSide:$sourceRatio%";
+			} else {
+				// ratioCrop is false, so we just want to fit the image inside the container
+				$fit = "contain";
 			}
 		}
 		$out .= '<div data-dyn_fit="' . $fit . '"' . stringify_attributes($ratioWrapperAttr) . '>' . $this->nl();
@@ -798,7 +781,7 @@ class DynamicImage
 			$this->origWidth = $props["width"];
 			$this->origHeight = $props["height"];
 		}
-		$this->publicFile ??= $this->file->getBasename("." . $this->file->getExtension());
+		$this->publicFile ??= str_replace("." . $this->file->getExtension(), "", $this->file);
 		$this->publicFileExt ??= $this->file->getExtension();
 	}
 
@@ -906,5 +889,17 @@ class DynamicImage
 	{
 		$svg = '<svg preserveAspectRatio="none" viewBox="0 0 ' . $width . ' ' . $height . '" xmlns="http://www.w3.org/2000/svg"><rect width="' . $width . '" height="' . $height . '" fill="' . $color . '" /></svg>';
 		return 'data:image/svg+xml;base64,' . base64_encode($svg);
+	}
+
+	protected function setVal($name, $value)
+	{
+		switch ($name) {
+			case "cols":
+				if (is_string($value)) {
+					$value = explode(" ", $value);
+				}
+				break;
+		}
+		$this->$name = $value;
 	}
 }
