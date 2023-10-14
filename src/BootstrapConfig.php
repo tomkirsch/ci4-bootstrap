@@ -83,13 +83,15 @@ class BootstrapConfig extends BaseConfig
 
 	/**
 	 * DynamicImage - Default size for hires. Use "source" for the source image's width, or a pixel value to restrict viewing
+	 * @var string|int
 	 */
-	public string $defaultHiresWidth = 'source';
+	public $defaultHiresWidth = 'source';
 
 	/**
 	 * DynamicImage - Use a pixel value to restrict image height
+	 * @var string|int
 	 */
-	public string $defaultHiresHeight = 'source';
+	public $defaultHiresHeight = 'source';
 
 	/**
 	 * DynamicImage - default LQIP (low quality image placeholder) 
