@@ -1,0 +1,71 @@
+@supports (--custom: property) {
+  [style*="--aspect-ratio"] {
+    position: relative;
+  }
+  [style*="--aspect-ratio"]::before {
+    content: "";
+    display: block;
+    padding-bottom: calc(100% / (var(--aspect-ratio)));
+  }
+  [style*="--aspect-ratio"] > :first-child,
+  [style*="--aspect-ratio"] > picture {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+.dyn_wrapper [style*="--aspect-ratio"]:first-child,
+.dyn_wrapper [style*="--aspect-ratio"] > picture {
+  width: 100%;
+}
+.dyn_wrapper img {
+  width: 100%;
+  height: auto;
+}
+.dyn_wrapper.dyn_crop {
+  overflow: hidden;
+}
+.dyn_wrapper.dyn_crop[style*="--aspect-ratio"] > :first-child[data-dyn_crop] {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.dyn_wrapper.dyn_crop.dyn_orient_wrapper-portrait img {
+  max-width: none !important;
+  width: auto;
+  height: 100%;
+}
+.dyn_wrapper.dyn_crop.dyn_orient_wrapper-landscape img {
+  max-width: none !important;
+  width: 100%;
+  height: auto;
+}
+.dyn_wrapper.dyn_crop [data-dyn_lqip=separate] {
+  max-width: none;
+  width: 100%;
+  height: 100%;
+}
+.dyn_wrapper.dyn_contain img {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+}
+.dyn_wrapper.dyn_contain.dyn_orient_wrapper-landscape.dyn_orient_src-portrait img {
+  width: auto;
+  height: 100%;
+  max-width: none;
+}
+
+.dyn_fadebox picture {
+  opacity: 0;
+  transition: opacity 400ms;
+}
+.dyn_fadebox.dyn_lazyloaded picture, .dyn_fadebox .dyn_loaded picture {
+  opacity: 1;
+}/*# sourceMappingURL=demo.css.map */

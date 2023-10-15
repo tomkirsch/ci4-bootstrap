@@ -46,7 +46,7 @@ $file2 = 'kitten-portrait-src.jpg';
 
 	<!-- output needed styles for cropping/ratio padding -->
 	<style type="text/css">
-		<?= require ROOTPATH . "../src/styles.css" ?>
+		<?= require ROOTPATH . "../src/demo.css" ?>
 	</style>
 	<!-- output scripts for lazyload -->
 	<?= view("Tomkirsch\Bootstrap\scripts") ?>
