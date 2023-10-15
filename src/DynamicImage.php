@@ -601,16 +601,18 @@ class DynamicImage
 				$cropAttr = $this->getRatioAttr();
 				$containerRatio *= 100;
 				$sourceRatio *= 100;
-				if ($containerRatio === $sourceRatio) {
-					$cropAttr["style"] .= ";padding-bottom:$sourceRatio%";
-				} else {
-					if ($sourceRatio < $containerRatio) {
+				$cropAttr["style"] .= ";padding-bottom:$sourceRatio%";
+				/*
+				if ($containerRatio !== $sourceRatio) {
+					if ($sourceRatio > $containerRatio) {
 						$sourceRatio = (100 * 100) / $sourceRatio;
-					}
+					}	
 					$ratioSide = ($srcOrient === 'landscape') ? 'right' : 'bottom';
 					$otherSide = ($srcOrient === 'landscape') ? 'bottom' : 'right';
 					$cropAttr["style"] .= ";padding-$otherSide:$containerRatio%;padding-$ratioSide:$sourceRatio%";
+					
 				}
+				*/
 			} else {
 				// ratioCrop is false, so we just want to fit the image inside the container
 				$fit = "contain";
@@ -837,7 +839,7 @@ class DynamicImage
 			if (preg_match('/^(\d+)[:\/](\d+)$/', $ratio, $matches)) {
 				array_shift($matches);
 				list($width, $height) = $matches;
-				return round($height / $width, 5);
+				return floatval($width) / floatval($height);
 			}
 		}
 		return floatval($ratio);

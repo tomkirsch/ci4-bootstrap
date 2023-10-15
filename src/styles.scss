@@ -37,12 +37,12 @@
 		left: 50%;
 		transform: translate(-50%, -50%);
 	}
-	&.dyn_orient_wrapper-portrait img {
+	&.dyn_orient_wrapper-landscape img {
 		max-width: none !important;
 		width: auto;
 		height: 100%;
 	}
-	&.dyn_orient_wrapper-landscape img {
+	&.dyn_orient_wrapper-portrait img {
 		max-width: none !important;
 		width: 100%;
 		height: auto;

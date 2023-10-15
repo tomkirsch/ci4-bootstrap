@@ -154,7 +154,7 @@ $file2 = 'kitten-portrait-src.jpg';
 				"file" => $file,
 				"colClasses" => "col-md-4 py-2",
 				"colWrapper" => TRUE,
-				"ratio"	=> "6/2", // crop to 16:2
+				"ratio"	=> "16/5",
 				"ratioCrop" => TRUE,
 			]) ?>
 			<?= \Config\Services::bootstrap()->dynamicImage([
