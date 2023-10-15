@@ -172,5 +172,6 @@ Full example (see `tests/views/welcome_message.php` for more)
 	"lazy" => TRUE, // lazyload
 	"lqipSeparate" => TRUE, // use a separate image for low quality placeholder
 	"lqip" => "xs", // use the image at the xs container width
+	"loop"=>TRUE, // set this when looping to optimize col calculations
 ]) ?>
 ```

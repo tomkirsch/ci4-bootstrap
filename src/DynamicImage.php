@@ -178,6 +178,11 @@ class DynamicImage
 	 */
 	protected $config;
 
+	/**
+	 * Last colClasses parsed
+	 */
+	protected string $lastColClasses = "";
+
 	public function __construct(?BootstrapConfig $config = NULL)
 	{
 		$this->config = $config ?? new BootstrapConfig();
@@ -195,6 +200,7 @@ class DynamicImage
 		$this->publicFileExt = NULL;
 		$this->query = NULL;
 		$this->alt = NULL;
+		$this->colClasses = NULL;
 
 		if ($this->resetGrid) {
 			$this->resetGrid();
@@ -214,7 +220,6 @@ class DynamicImage
 	public function resetGrid()
 	{
 		$this->grid = NULL;
-		$this->colClasses = NULL;
 		$this->colWrapper = FALSE;
 		$this->gutterWidth = $this->config->defaultGutterWidth;
 		$this->containerMaxHeight = 0;
@@ -377,11 +382,6 @@ class DynamicImage
 	 */
 	public function render(array $options = []): string
 	{
-		// reset grid is true? then do it now so we don't keep the previous grid
-		if (!empty($options["resetGrid"])) {
-			$this->resetGrid();
-		}
-
 		// set properties
 		foreach ($options as $option => $val) {
 			$this->setVal($option, $val);
@@ -390,13 +390,14 @@ class DynamicImage
 		// validate Image file
 		$this->checkFile();
 		// validate grid
-		if (!$this->grid) {
+		if (!$this->grid || $this->lastColClasses !== $this->colClasses) {
 			$this->parseColNames();
 			// make grid using col class names and bootstrap breakpoints
 			$this->grid($this->cols2Grid());
+			// store last to optimize loops
+			$this->lastColClasses = $this->colClasses ?? "";
 		}
 		$mediaDict = $this->grid;
-
 		// are we using a custom ratio that is larger than our own ratio? then offset the container widths since it will be "zoomed in" behind the crop, and we want the correct-sized image file
 		if ($this->ratio && $this->ratio !== TRUE && $this->ratioCrop) {
 			$sourceRatio = $this->sourceRatio();
@@ -440,6 +441,10 @@ class DynamicImage
 
 		// reset stuff
 		$this->reset();
+		$loop = $options['loop'] ?? FALSE;
+		if (!$loop) {
+			$this->resetGrid();
+		}
 
 		return $out;
 	}
@@ -898,7 +903,9 @@ class DynamicImage
 		switch ($name) {
 			case "cols":
 				if (is_string($value)) {
-					$value = explode(" ", $value);
+					// assume we want colClasses string, which must be parsed
+					$this->colClasses = $value;
+					return;
 				}
 				break;
 			case "size":
@@ -912,6 +919,8 @@ class DynamicImage
 					$this->origHeight = intval($value[1]);
 				}
 				return;
+			case "loop":
+				break;
 			default:
 				if (!property_exists($this, $name)) {
 					throw new \Exception("Invalid option: $name");
