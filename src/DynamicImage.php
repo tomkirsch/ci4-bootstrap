@@ -382,12 +382,9 @@ class DynamicImage
 			$this->resetGrid();
 		}
 
-		// set public properties
+		// set properties
 		foreach ($options as $option => $val) {
-			// anything passed in $config takes precedent
-			if (property_exists($this, $option)) {
-				$this->setVal($option, $val);
-			}
+			$this->setVal($option, $val);
 		}
 
 		// validate Image file
@@ -902,6 +899,19 @@ class DynamicImage
 					$value = explode(" ", $value);
 				}
 				break;
+			case "size":
+				if (is_string($value)) {
+					$sep = stristr(",", $value) ? "," : "x";
+					list($width, $height) = explode($sep, $value);
+					$this->origWidth = intval($width);
+					$this->origHeight = intval($height);
+				} else {
+					$this->origWidth = intval($value[0]);
+					$this->origHeight = intval($value[1]);
+				}
+				return;
+			default:
+				throw new \Exception("Invalid option: $name");
 		}
 		$this->$name = $value;
 	}
