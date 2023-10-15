@@ -911,7 +911,9 @@ class DynamicImage
 				}
 				return;
 			default:
-				throw new \Exception("Invalid option: $name");
+				if (!property_exists($this, $name)) {
+					throw new \Exception("Invalid option: $name");
+				}
 		}
 		$this->$name = $value;
 	}
