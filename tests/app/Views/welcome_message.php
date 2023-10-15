@@ -45,7 +45,9 @@ $file2 = 'kitten-portrait-src.jpg';
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/lazysizes/5.3.0/lazysizes.min.js" integrity="sha512-JrL1wXR0TeToerkl6TPDUa9132S3PB1UeNpZRHmCe6TxS43PFJUcEYUhjJb/i63rSd+uRvpzlcGOtvC/rDQcDg==" crossorigin="anonymous"></script>
 
 	<!-- output needed styles for cropping/ratio padding -->
-	<?= view("Tomkirsch\Bootstrap\styles", ["withTag" => TRUE]) ?>
+	<style type="text/css">
+		<?= require ROOTPATH . "../src/styles.css" ?>
+	</style>
 	<!-- output scripts for lazyload -->
 	<?= view("Tomkirsch\Bootstrap\scripts") ?>
 </head>
@@ -88,7 +90,7 @@ $file2 = 'kitten-portrait-src.jpg';
 			]) ?>
 		</picture>
 
-		<h2>Dynamic Image... note there is NO max-width being used here! All images are sized correctly to their containers!</h2>
+		<h2>Dynamic Image... all images are sized correctly to their containers</h2>
 		<p>Full container width</p>
 		<div class="row">
 			<div class="col py-2">
@@ -225,7 +227,7 @@ $file2 = 'kitten-portrait-src.jpg';
 			]) ?>
 		</div>
 
-		<p>Hard limits on width and/or height</p>
+		<p>Hard limits on width and/or height (these dont go over 600px)</p>
 		<div class="row">
 			<?= \Config\Services::bootstrap()->dynamicImage([
 				"file" => $file,

@@ -81,7 +81,7 @@ class DynamicImage
 	/**
 	 * Attributes for the col wrapper
 	 */
-	public ?array $colWrapperAttr;
+	public array $colWrapperAttr = [];
 
 	/**
 	 * Bootstrap gutter width
@@ -105,8 +105,9 @@ class DynamicImage
 
 	/**
 	 * Maximum width/height to offer the public. These are hard limits that will never be surpassed.
+	 * @var int|string|null
 	 */
-	public ?int $hiresX, $hiresY;
+	public $hiresX, $hiresY;
 
 	/**
 	 * Ratio setting 
@@ -525,9 +526,9 @@ class DynamicImage
 	{
 		if (!$this->colWrapper) return "";
 		// add the string supplied in cols() call
-		$wrapperAttr = $this->ensureAttr('class', $this->colClasses, $this->colWrapperAttr);
+		$wrapperAttr = $this->ensureAttr('class', $this->colClasses . " dyn_colwrapper", $this->colWrapperAttr);
 		$this->wrapCount++;
-		return '<div data-dyn_wrapper="col" ' . stringify_attributes($wrapperAttr) . '>' . $this->nl();
+		return '<div ' . stringify_attributes($wrapperAttr) . '>' . $this->nl();
 	}
 
 	/**
@@ -587,8 +588,11 @@ class DynamicImage
 		$out = "";
 
 		$ratioWrapperAttr = $this->getRatioAttr($this->ratioWrapperAttr);
-		$ratioWrapperAttr["dyn_wrapper_orient"] = $containerRatio < 1 ? "portrait" : "landscape";
-		$ratioWrapperAttr["data-dyn_src_orient"] = $this->getOrientation($this->origWidth, $this->origHeight);
+		$ratioWrapperAttr = $this->ensureAttr("class", "dyn_wrapper", $ratioWrapperAttr);
+		$containerOrient = $containerRatio < 1 ? "portrait" : "landscape";
+		$ratioWrapperAttr = $this->ensureAttr("class", "dyn_orient_wrapper-$containerOrient", $ratioWrapperAttr);
+		$srcOrient = $this->getOrientation($this->origWidth, $this->origHeight);
+		$ratioWrapperAttr = $this->ensureAttr("class", "dyn_orient_src-$srcOrient", $ratioWrapperAttr);
 
 		$fit = "none";
 		$cropAttr = NULL;
@@ -597,7 +601,6 @@ class DynamicImage
 			//write the cropping div, if ratioCrop is true
 			if ($this->ratioCrop) {
 				$fit = "crop";
-				$orientation = $this->getOrientation($this->origWidth, $this->origHeight);
 				$cropAttr = $this->getRatioAttr();
 				$containerRatio *= 100;
 				$sourceRatio *= 100;
@@ -607,8 +610,8 @@ class DynamicImage
 					if ($sourceRatio < $containerRatio) {
 						$sourceRatio = (100 * 100) / $sourceRatio;
 					}
-					$ratioSide = ($orientation === 'landscape') ? 'right' : 'bottom';
-					$otherSide = ($orientation === 'landscape') ? 'bottom' : 'right';
+					$ratioSide = ($srcOrient === 'landscape') ? 'right' : 'bottom';
+					$otherSide = ($srcOrient === 'landscape') ? 'bottom' : 'right';
 					$cropAttr["style"] .= ";padding-$otherSide:$containerRatio%;padding-$ratioSide:$sourceRatio%";
 				}
 			} else {
@@ -616,13 +619,13 @@ class DynamicImage
 				$fit = "contain";
 			}
 		}
-		$out .= '<div data-dyn_fit="' . $fit . '"' . stringify_attributes($ratioWrapperAttr) . '>' . $this->nl();
+		$ratioWrapperAttr = $this->ensureAttr("class", "dyn_$fit", $ratioWrapperAttr);
+		$out .= '<div' . stringify_attributes($ratioWrapperAttr) . '>' . $this->nl();
 		$this->wrapCount++;
 		if ($cropAttr) {
 			$out .= '<div data-dyn_crop="' . $this->origWidth . '/' . $this->origHeight . '" ' . stringify_attributes($cropAttr) . '>' . $this->nl();
 			$this->wrapCount++;
 		}
-
 		return $out;
 	}
 

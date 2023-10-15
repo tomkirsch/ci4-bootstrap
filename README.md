@@ -6,7 +6,7 @@ Add the requirement to `composer.json`:
 
 ```
     "require": {
-		"tomkirsch/bootstrap":"^1"
+		"tomkirsch/bootstrap":"^3"
 	}
 ```
 
@@ -20,42 +20,78 @@ Create the config file `Config\Bootstrap.php` and set your preferences. You MUST
 use Tomkirsch\Bootstrap\BootstrapConfig;
 
 class Bootstrap extends BootstrapConfig{
-	// return the file to be used
-	public function dynamicImageFileName(string $src, string $ext, int $width){
-		$file = $src.'.'.$ext;
-		$params = ['f'=>$file, 'w'=>$width];
-		return base_url('resize?'.http_build_query($params));
-	}
+	/**
+	 * Bootstrap version. used to get the correct container/breakpoint
+	 */
+	public string $bsVersion = '5';
 
-	// newlines in output
+	/**
+	 * Use newlines in HTML output
+	 */
 	public bool $prettyPrint = FALSE;
 
-	// default element, 'img' or 'picture'
-	public string $defaultElement = 'picture';
+	/**
+	 * DynamicImage - You can use a custom function to generate the public-facing dynamic image filename.
+	 */
+	public function dynamicImageFileName(string $src, string $ext, int $width): ?string
+	{
+		$file = $src . '.' . $ext;
+		$params = ['f' => $file, 'w' => $width];
+		return base_url('resize?' . http_build_query($params));
+	}
 
-	// use lazyload by default
-	public bool $defaultIsLazy = FALSE;
+	/**
+	 * DynamicImage - Col gutter width in pixels
+	 */
+	public int $defaultGutterWidth = 12;
 
-	// default hires setting
-	public string $defaultHires = 'source';
-
-	// default LQIP (low quality image placeholder)
-	public string $defaultLqip = 'xs';
-
-	// use padding-bottom hack on wrapper
-	public string $defaultRatioPaddingClass = 'ratiobox';
-
-	// maximum supported resolution factor (2x, 3x, etc)
-	public float $defaultMaxResolution = 4;
-
-	// default resolution step to get from 1 to $maxResolutionFactor
-	public float $defaultResolutionStep = 1;
-
-	// number of columns in the grid
+	/**
+	 * DynamicImage - number of columns in the grid
+	 */
 	public int $gridCols = 12;
 
-	// bootstrap version. used to get the correct container/breakpoint
-	public string $bsVersion = '5';
+	/**
+	 * DynamicImage - Default element to use, 'img' or 'picture'
+	 */
+	public string $defaultElement = 'picture';
+
+	/**
+	 * DynamicImage - Default use data-src and data-srcset instead of src and srcset
+	 */
+	public bool $defaultIsLazy = FALSE;
+
+	/**
+	 * DynamicImage - Default size for hires. Use "source" for the source image's width, or a pixel value to restrict viewing
+	 * @var string|int
+	 */
+	public $defaultHiresWidth = 'source';
+
+	/**
+	 * DynamicImage - Use a pixel value to restrict image height
+	 * @var string|int
+	 */
+	public $defaultHiresHeight = 'source';
+
+	/**
+	 * DynamicImage - default LQIP (low quality image placeholder)
+	 */
+	public string $defaultLqip = 'xs';
+
+	/**
+	 * DynamicImage - use padding hack by default
+	 */
+	public bool $defaultUseRatio = FALSE;
+
+	/**
+	 * DynamicImage - maximum supported resolution factor (2x, 3x, etc)
+	 */
+	public float $defaultMaxResolution = 2;
+
+	/**
+	 * DynamicImage - default resolution step to get from 1 to $maxResolutionFactor.
+	 * A lower number will create more sources
+	 */
+	public float $defaultResolutionStep = 0.5;
 }
 ```
 
@@ -66,10 +102,15 @@ To use containers in a newer version of bootstrap, just add them to the `contain
 Create the service in `Config\Services.php`:
 
 ```
-	public static function bootstrap($getShared = true, $config=NULL){
-		if(!$config) $config = config('bootstrap');
-		return $getShared ? static::getSharedInstance('bootstrap') : new \Tomkirsch\Bootstrap\Bootstrap($config);
-	}
+use Tomkirsch\Bootstrap\Bootstrap;
+class Services extends BaseService
+{
+	public static function bootstrap($config = null, bool $getShared = TRUE): Bootstrap
+    {
+        $config = $config ?? new Config\Bootstrap();
+        return $getShared ? static::getSharedInstance('bootstrap', $config) : new Bootstrap($config);
+    }
+}
 ```
 
 Create your image resizer controller. The directives here must match the output from `dynamicImageFileName()` in the config class. Here's a quick example:
@@ -93,34 +134,10 @@ class Resize extends BaseController{
 }
 ```
 
-If you'd like to use padding ratio elements, or lazyload transitions, define them in your CSS.
+If you'd like to use padding ratio elements, or lazyload transitions, define them in your CSS. Ensure the relative path gets you to the root folder.
 
 ```
-	.ratiobox{
-		position: relative;
-		height: 0;
-		display: block;
-		width: 100%;
-	}
-	.ratiobox *{
-		position: absolute;
-		top: 0;
-		left: 0;
-		width: 100%;
-		height: 100%;
-		display: block;
-	}
-	.fadebox img{
-		position: absolute;
-		transition: opacity 2s;
-	}
-	.fadebox .lazyload,
-	.fadebox .lazyloading {
-		opacity: 0;
-	}
-	.fadebox .lazyloaded {
-		opacity: 1;
-	}
+@import "../vendor/tomkirsch/bootstrap/src/styles";
 ```
 
 Include lazysizes JS
@@ -128,127 +145,32 @@ Include lazysizes JS
 
 ## Usage
 
+Static Image (no bootstrap cols)
+
 ```
-	<div class="container mb-3">
-		<h3>Flex Columns</h3>
-		<div class="card-deck">
-			<?php
-			$map = [
-				'sm'=>2, // wrap every 2 cards on sm
-				'md'=>3, // wrap every 3 cards on md
-				'lg'=>2,
-				'xl'=>5,
-			];
-			for($i=1; $i<=6; $i++): ?>
-			<div class="card mb-3">
-				<h1><?= $i ?></h1>
-			</div>
-			<?= service('bootstrap')->flexColumn($i, $map); ?>
-			<?php endfor; ?>
-		</div>
-	</div>
-	<hr>
-	<div class="container mb-3">
-		<h3>Max Resolution: 1x</h3>
-		<?php foreach(['col', 'col-md-6 col-lg-4 col-xl-2'] as $cols): ?>
-		<div class="row">
-			<div class="<?= $cols ?>">
-				<h5><?= $cols ?></h5>
-				<?= service('bootstrap')
-					->dynamicImage($file)
-					->cols($cols)
-					->debug($debug)
-					->hires(NULL)
-					->element('picture', [], ['alt'=>'A cute kitten', 'class'=>'img-fluid'])
-					->render();
-				?>
-			</div>
-		</div>
-		<?php endforeach; ?>
-		<hr>
-		<h3>Max Resolution: 2x, Step 0.5, Lazyload</h3>
-		<?php foreach(['col', 'col-md-6 col-lg-4 col-xl-2'] as $cols): ?>
-		<div class="row">
-			<div class="<?= $cols ?>">
-				<h5><?= $cols ?></h5>
-				<?= service('bootstrap')
-					->dynamicImage($file)
-					->debug($debug)
-					->cols($cols)
-					->hires(2, 0.5)
-					->lazy(TRUE)
-					->element('picture', [], ['alt'=>'A cute kitten', 'class'=>'img-fluid'])
-					->render();
-				?>
-			</div>
-		</div>
-		<?php endforeach; ?>
-		<hr>
-		<h3>Max Width: 800px (Max Resolution <?= config('Tomkirsch\Bootstrap\BootstrapConfig')->defaultMaxResolution ?>x)</h3>
-		<?php foreach(['col', 'col-md-6 col-lg-4 col-xl-2'] as $cols): ?>
-		<div class="row">
-			<div class="<?= $cols ?>">
-				<h5><?= $cols ?></h5>
-				<?= service('bootstrap')
-					->dynamicImage($file)
-					->debug($debug)
-					->cols($cols)
-					->hires(800)
-					->element('picture', [], ['alt'=>'A cute kitten', 'class'=>'img-fluid'])
-					->render();
-				?>
-			</div>
-		</div>
-		<?php endforeach; ?>
-		<hr>
-		<h3>LQIP Width:100px, Hex Color</h3>
-		<div class="row">
-			<?= service('bootstrap')
-				->dynamicImage($file)
-				->debug($debug)
-				->cols('col-6', ['class'=>'wrapperClass'])
-				->ratio(NULL)
-				->lqip(100)
-				->element('picture', [], ['alt'=>'A cute kitten', 'class'=>'img-fluid'])
-				->render();
-			?>
-			<?= service('bootstrap')
-				->dynamicImage($file)
-				->debug($debug)
-				->cols('col-6', ['class'=>'wrapperClass'])
-				->ratio(NULL)
-				->lqip('#FF0000')
-				->element('picture', [], ['alt'=>'A cute kitten', 'class'=>'img-fluid'])
-				->render();
-			?>
-		</div>
-		<hr>
-		<h3>LQIP Lazyload Fade-In</h3>
-		<div class="row">
-			<div class="col-6">
-				<?= service('bootstrap')
-					->dynamicImage($file)
-					->debug($debug)
-					->cols('col-6')
-					->ratio('ratiobox fadebox') // add fadebox class for css transition & positioning
-					->lazy(TRUE)
-					->lqip(100, [], TRUE) // lqip must be a separate <img> element
-					->element('img', ['alt'=>'A cute kitten', 'class'=>'img-fluid']) // fade transition won't work for <picture>!
-					->render();
-				?>
-			</div>
-			<div class="col-6">
-				<?= service('bootstrap')
-					->dynamicImage($file)
-					->debug($debug)
-					->cols('col-6')
-					->ratio('ratiobox fadebox') // add fadebox class for css transition & positioning
-					->lazy(TRUE)
-					->lqip('#FF0000', [], TRUE) // lqip must be a separate <img> element
-					->element('img', ['alt'=>'A cute kitten', 'class'=>'img-fluid']) // fade transition won't work for <picture>!
-					->render();
-				?>
-			</div>
-		</div>
-	</div><!-- container -->
+<?= \Config\Services::bootstrap()->staticImage()->renderSources([
+	"prettyPrint" => TRUE,
+	"imgAttr" => ["class" => "img-fluid"], // optional - creates the <img>
+	"widths" => [2080, 1040, 520, 260],
+	"file" => function ($width, $resolution) {
+		return "kitten-$width.jpg";
+	},
+]) ?>
+```
+
+Full example (see `tests/views/welcome_message.php` for more)
+
+```
+<?= \Config\Services::bootstrap()->dynamicImage([
+	"file" => "foo.jpg", // source image. will be rewritten as foo-xxx.jpg, based on your config
+	"size" => [2000, 1333], // always enter your src image size to prevent getimagesize() lag
+	"query" => ["q" => rand()], // prevent caching
+	"colClasses" => "col-md-4 py-2 dyn_fadebox", // use fadebox class
+	"colWrapper" => TRUE, // create the wrapper div above
+	"ratio"	=> 16/9, // container will be a 16:9 rectangle. use TRUE for the original image ratio, or 1 for a square
+	"ratioCrop" => TRUE,  // crop & center the pic
+	"lazy" => TRUE, // lazyload
+	"lqipSeparate" => TRUE, // use a separate image for low quality placeholder
+	"lqip" => "xs", // use the image at the xs container width
+]) ?>
 ```
