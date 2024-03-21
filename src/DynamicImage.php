@@ -387,8 +387,9 @@ class DynamicImage
 			$this->setVal($option, $val);
 		}
 
-		// validate Image file
+		// validate Image file, get orig dimensions if not set
 		$this->checkFile();
+
 		// validate grid
 		if (!$this->grid || $this->lastColClasses !== $this->colClasses) {
 			$this->parseColNames();

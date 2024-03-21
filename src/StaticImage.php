@@ -7,7 +7,6 @@ use \Closure;
 
 class StaticImage
 {
-
     /**
      * List of image widths that exist
      * @var array

@@ -78,7 +78,7 @@ $file2 = 'kitten-portrait-src.jpg';
 	</div>
 
 	<div class="container">
-		<h2>Static Image</h2>
+		<h2>Static Image (uses static image assets kitten-260.jpg, kitten-520.jpg, etc)</h2>
 		<picture>
 			<?= \Config\Services::bootstrap()->staticImage()->renderSources([
 				"prettyPrint" => TRUE,
@@ -90,7 +90,7 @@ $file2 = 'kitten-portrait-src.jpg';
 			]) ?>
 		</picture>
 
-		<h2>Dynamic Image... all images are sized correctly to their containers</h2>
+		<h2>Dynamic Image... all images are perfectly sized correctly to their containers!</h2>
 		<p>Full container width</p>
 		<div class="row">
 			<div class="col py-2">
@@ -114,7 +114,7 @@ $file2 = 'kitten-portrait-src.jpg';
 			</div>
 		</div>
 
-		<p>Bootstrap cols with various LQIP (initial img src)</p>
+		<p>Bootstrap cols with various LQIP (xs container, transparent pixel, solid color, 100px image)</p>
 		<div class="row">
 			<?= \Config\Services::bootstrap()->dynamicImage([
 				"file" => $file,
@@ -142,7 +142,7 @@ $file2 = 'kitten-portrait-src.jpg';
 			]) ?>
 		</div>
 
-		<p>Ratio padding (natural and forced with cropping)</p>
+		<p>Ratio padding (original ratio, 16:2 crop, 1:1 crop)</p>
 		<div class="row">
 			<?= \Config\Services::bootstrap()->dynamicImage([
 				"file" => $file,
@@ -166,7 +166,7 @@ $file2 = 'kitten-portrait-src.jpg';
 			]) ?>
 		</div>
 
-		<p>Also works with portrait orientation</p>
+		<p>Also works with portrait orientation (original ratio, 16:2 crop, 1:1 crop)</p>
 		<div class="row">
 			<?= \Config\Services::bootstrap()->dynamicImage([
 				"file" => $file2,
@@ -190,7 +190,7 @@ $file2 = 'kitten-portrait-src.jpg';
 			]) ?>
 		</div>
 
-		<p>LQIP + Ratio + Lazyload. Use .dyn_fadebox CSS class to animate the reveal</p>
+		<p>LQIP + Ratio + Lazyload (xs col, solid color, 100px image). Use .dyn_fadebox CSS class to animate the reveal</p>
 		<div class="row">
 			<?= \Config\Services::bootstrap()->dynamicImage([
 				"file" => $file,
@@ -227,7 +227,7 @@ $file2 = 'kitten-portrait-src.jpg';
 			]) ?>
 		</div>
 
-		<p>Hard limits on width and/or height (these dont go over 600px)</p>
+		<p>Hard limits on width and/or height (hiresX: 600px, hiresY: 300px)</p>
 		<div class="row">
 			<?= \Config\Services::bootstrap()->dynamicImage([
 				"file" => $file,
@@ -243,7 +243,7 @@ $file2 = 'kitten-portrait-src.jpg';
 			]) ?>
 		</div>
 
-		<p>Max-height on col</p>
+		<p>Max-height on col (containerMaxHeight: 200px)</p>
 		<div class="row">
 			<div class="col-md-6 py-2" style="max-height: 350px; overflow:hidden;">
 				<?= \Config\Services::bootstrap()->dynamicImage([

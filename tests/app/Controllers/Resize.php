@@ -4,6 +4,9 @@ namespace App\Controllers;
 
 class Resize extends BaseController
 {
+	/**
+	 * Resizes an image server-side. For more functionality, see the ci4 Resizer library on git.
+	 */
 	public function index()
 	{
 		$file = $this->request->getGet('f');
@@ -13,7 +16,6 @@ class Resize extends BaseController
 			->resize($width, $width, TRUE, 'width');
 		$resource = $img->getResource();
 		// write the image size
-		$bg = imagecolorallocate($resource, 255, 255, 255);
 		$textcolor = imagecolorallocate($resource, 0, 0, 0);
 		$string = $img->getWidth() . 'x' . $img->getHeight();
 		$font  = 5;
