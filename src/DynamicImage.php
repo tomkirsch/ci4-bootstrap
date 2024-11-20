@@ -153,9 +153,10 @@ class DynamicImage
 	public bool $prettyPrint = FALSE;
 
 	/**
-	 * Reset grid after render. Set to FALSE to optimize loops that use the same grid
+	 * Reset grid after render. Set to TRUE to optimize loops that use the same grid.
+	 * You MUST call reset(TRUE) or loop(FALSE) when done looping, so the next call recalculates the grid.
 	 */
-	public bool $resetGrid = TRUE;
+	public bool $loop = FALSE;
 
 	/**
 	 * Dictionary of screen widths and resolution factors
@@ -192,7 +193,7 @@ class DynamicImage
 	/**
 	 * Reset grid calculations and preferences to the config/defaults
 	 */
-	public function reset()
+	public function reset(bool $resetGrid = TRUE)
 	{
 		$this->file = NULL;
 		$this->origWidth = $this->origHeight = NULL;
@@ -202,7 +203,7 @@ class DynamicImage
 		$this->alt = NULL;
 		$this->colClasses = NULL;
 
-		if ($this->resetGrid) {
+		if ($resetGrid) {
 			$this->resetGrid();
 		}
 		$this->maxResolutionFactor = $this->config->defaultMaxResolution;
@@ -309,6 +310,15 @@ class DynamicImage
 	public function lazy(bool $value)
 	{
 		$this->lazy = $value;
+		return $this;
+	}
+
+	/**
+	 * Enable looping - if true, grid will not be reset after render
+	 */
+	public function loop(bool $value)
+	{
+		$this->loop = $value;
 		return $this;
 	}
 
@@ -440,12 +450,8 @@ class DynamicImage
 		// close the wrappers
 		$out .= str_repeat('</div>' . $this->nl(), $this->wrapCount);
 
-		// reset stuff
-		$this->reset();
-		$loop = $options['loop'] ?? FALSE;
-		if (!$loop) {
-			$this->resetGrid();
-		}
+		// reset stuff. if we're looping, we don't want to reset the grid
+		$this->reset(!$this->loop);
 
 		return $out;
 	}

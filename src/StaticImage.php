@@ -2,7 +2,6 @@
 
 namespace Tomkirsch\Bootstrap;
 
-use CodeIgniter\Images\Image;
 use \Closure;
 
 class StaticImage
