@@ -3,15 +3,17 @@
 	"type": "project",
 	"description": "CodeIgniter4 Bootstrap Utils",
 	"require": {
-		"php": "^7.3||^8.0",
-		"codeigniter4/framework": "^4"
+		"php": "^8.2",
+		"codeigniter4/framework": "^4.7"
 	},
 	"autoload": {
-        "psr-4": {
-            "Tomkirsch\\Bootstrap\\": "src/"
-        }
+		"psr-4": {
+			"Tomkirsch\\Bootstrap\\": "src/"
+		}
 	},
 	"archive": {
-        "exclude": ["tests"]
+		"exclude": [
+			"tests"
+		]
 	}
 }

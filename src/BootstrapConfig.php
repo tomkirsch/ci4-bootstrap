@@ -77,9 +77,14 @@ class BootstrapConfig extends BaseConfig
 	public string $defaultElement = 'picture';
 
 	/**
-	 * DynamicImage - Default use data-src and data-srcset instead of src and srcset
+	 * DynamicImage - Native loading hint: lazy | eager | auto
 	 */
-	public bool $defaultIsLazy = FALSE;
+	public string $defaultLoading = 'auto';
+
+	/**
+	 * DynamicImage - Network priority hint: high | low | auto
+	 */
+	public string $defaultFetchPriority = 'auto';
 
 	/**
 	 * DynamicImage - Default size for hires. Use "source" for the source image's width, or a pixel value to restrict viewing

@@ -37,10 +37,16 @@ class StaticImage
     public float $resolutionStep = 0.5;
 
     /**
-     * Whether image is lazy-loaded (requires lazysizes JS)
-     * @var bool
+     * Loading attribute for <img>
+     * @var string 'auto'|'lazy'|'eager'
      */
-    public bool $lazy = FALSE;
+    public string $loading = 'auto';
+
+    /**
+     * Fetch priority attribute for <img>
+     * @var string 'auto'|'high'|'low'
+     */
+    public string $fetchPriority = 'auto';
 
     /**
      * Prints newlines
@@ -87,7 +93,8 @@ class StaticImage
     {
         $this->maxResolutionFactor = $this->config->defaultMaxResolution;
         $this->resolutionStep = $this->config->defaultResolutionStep;
-        $this->lazy = $this->config->defaultIsLazy;
+        $this->loading = $this->config->defaultLoading;
+        $this->fetchPriority = $this->config->defaultFetchPriority;
         $this->prettyPrint = $this->config->prettyPrint;
         $this->widths = [];
         $this->file = NULL;
@@ -138,14 +145,19 @@ class StaticImage
                     $sources[] = $src;
                 }
             }
-            $prop = $this->lazy ? "data-srcset" : "srcset";
+            $attr = "srcset";
             $glue = $this->prettyPrint ? ",\n" : ", ";
-            $out .= '<source media="(min-width:' . $mediaWidth . 'px)" ' . $prop . '="' . implode($glue, $sources) . '">';
+            $out .= '<source media="(min-width:' . $mediaWidth . 'px)" ' . $attr . '="' . implode($glue, $sources) . '">';
         }
         if ($this->imgAttr) {
-            $attr = $this->lazy ? "data-src" : "src";
-            if (empty($this->imgAttr[$attr])) {
-                $this->imgAttr[$attr] = ($this->file)(min($this->widths), 1);
+            if (empty($this->imgAttr['src'])) {
+                $this->imgAttr['src'] = ($this->file)(min($this->widths), 1);
+            }
+            if (isset($this->loading) && $this->loading !== 'auto') {
+                $this->imgAttr['loading'] = $this->loading;
+            }
+            if (isset($this->fetchPriority) && $this->fetchPriority !== 'auto') {
+                $this->imgAttr['fetchpriority'] = $this->fetchPriority;
             }
             $out .= '<img ' . stringify_attributes($this->imgAttr) . ' />';
         }

@@ -61,6 +61,7 @@
 .aspect-ratio {
 	@include aspect-ratio;
 }
+
 .dyn_wrapper {
 	@include dyn-wrapper;
 	&.dyn_crop {
@@ -68,15 +69,5 @@
 	}
 	&.dyn_contain {
 		@include dyn-contain;
-	}
-}
-.dyn_fadebox {
-	picture {
-		opacity: 0;
-		transition: opacity 400ms;
-	}
-	&.dyn_lazyloaded picture,
-	& .dyn_loaded picture {
-		opacity: 1;
 	}
 }

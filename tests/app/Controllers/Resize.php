@@ -7,7 +7,7 @@ class Resize extends BaseController
 	/**
 	 * Resizes an image server-side. For more functionality, see the ci4 Resizer library on git.
 	 */
-	public function index()
+	public function getIndex()
 	{
 		$file = $this->request->getGet('f');
 		$width = $this->request->getGet('w');
@@ -27,7 +27,6 @@ class Resize extends BaseController
 		// send the image
 		header('Content-Type: image/jpeg');
 		imagejpeg($resource, NULL, 75);
-		imagedestroy($resource);
 		exit;
 	}
 }

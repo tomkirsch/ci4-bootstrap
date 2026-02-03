@@ -46,10 +46,8 @@ $file2 = 'kitten-portrait-src.jpg';
 
 	<!-- output needed styles for cropping/ratio padding -->
 	<style type="text/css">
-		<?= require ROOTPATH . "../src/demo.css" ?>
+		<?= require ROOTPATH . "../src/styles.css" ?>
 	</style>
-	<!-- output scripts for lazyload -->
-	<?= view("Tomkirsch\Bootstrap\scripts") ?>
 </head>
 
 <body class="pb-3">
@@ -190,39 +188,36 @@ $file2 = 'kitten-portrait-src.jpg';
 			]) ?>
 		</div>
 
-		<p>LQIP + Ratio + Lazyload (xs col, solid color, 100px image). Use .dyn_fadebox CSS class to animate the reveal</p>
+		<p>LQIP + Ratio + Lazyload (xs col, solid color, 100px image).</p>
 		<div class="row">
 			<?= \Config\Services::bootstrap()->dynamicImage([
 				"file" => $file,
 				"query" => ["q" => rand()], // prevent caching
-				"colClasses" => "col-md-4 py-2 dyn_fadebox",
+				"colClasses" => "col-md-4 py-2",
 				"colWrapper" => TRUE,
 				"ratio"	=> 1,
 				"ratioCrop" => TRUE,
-				"lazy" => TRUE,
-				"lqipSeparate" => TRUE,
+				"loading" => "lazy",
 				"lqip" => "xs", // the image width at xs container (default)
 			]) ?>
 			<?= \Config\Services::bootstrap()->dynamicImage([
 				"file" => $file,
 				"query" => ["q" => rand()], // prevent caching
-				"colClasses" => "col-md-4 py-2 dyn_fadebox",
+				"colClasses" => "col-md-4 py-2",
 				"colWrapper" => TRUE,
 				"ratio"	=> 1,
 				"ratioCrop" => TRUE,
-				"lazy" => TRUE,
-				"lqipSeparate" => TRUE,
+				"loading" => "lazy",
 				"lqip" => "#FF0000", // solid color
 			]) ?>
 			<?= \Config\Services::bootstrap()->dynamicImage([
 				"file" => $file,
 				"query" => ["q" => rand()], // prevent caching
-				"colClasses" => "col-md-4 py-2 dyn_fadebox",
+				"colClasses" => "col-md-4 py-2",
 				"colWrapper" => TRUE,
 				"ratio"	=> 1,
 				"ratioCrop" => TRUE,
-				"lazy" => TRUE,
-				"lqipSeparate" => TRUE,
+				"loading" => "lazy",
 				"lqip" => 100, // 100px image
 			]) ?>
 		</div>

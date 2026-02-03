@@ -127,9 +127,14 @@ class DynamicImage
 	public array $ratioWrapperAttr = [];
 
 	/**
-	 * Whether image is lazy-loaded (requires lazysizes JS)
+	 * Native loading hint: lazy | eager | null (auto)
 	 */
-	public bool $lazy = FALSE;
+	public string $loading = 'auto';
+
+	/**
+	 * Network priority hint: high | low | auto
+	 */
+	public string $fetchPriority = 'auto';
 
 	/**
 	 * Low quality image placeholder setting
@@ -141,11 +146,6 @@ class DynamicImage
 	 * LQIP attributes
 	 */
 	public ?array $lqipAttr;
-
-	/**
-	 * LQIP is separate element? (Requires CSS positioning)
-	 */
-	public bool $lqipSeparate = FALSE;
 
 	/**
 	 * Prints newlines
@@ -208,7 +208,8 @@ class DynamicImage
 		}
 		$this->maxResolutionFactor = $this->config->defaultMaxResolution;
 		$this->ratio($this->config->defaultUseRatio);
-		$this->lazy($this->config->defaultIsLazy);
+		$this->loading($this->config->defaultLoading);
+		$this->fetchPriority($this->config->defaultFetchPriority);
 		$this->hires($this->config->defaultHiresWidth, $this->config->defaultHiresHeight, $this->config->defaultResolutionStep);
 		$this->lqip($this->config->defaultLqip);
 		$this->prettyPrint($this->config->prettyPrint);
@@ -305,13 +306,25 @@ class DynamicImage
 	}
 
 	/**
-	 * Enable lazy-load - if true, HTML uses data-src and data-srcset attributes
+	 * Set loading attribute for native lazy loading
+	 * @param string $value 'lazy', 'eager', or 'auto'
 	 */
-	public function lazy(bool $value)
+	public function loading(string $value)
 	{
-		$this->lazy = $value;
+		$this->loading = $value;
 		return $this;
 	}
+
+	/**
+	 * Set fetch priority hint
+	 * @param string $value 'high', 'low', or 'auto'
+	 */
+	public function fetchPriority(string $value)
+	{
+		$this->fetchPriority = $value;
+		return $this;
+	}
+
 
 	/**
 	 * Enable looping - if true, grid will not be reset after render
@@ -355,16 +368,11 @@ class DynamicImage
 	 * Sets the Low-Quality Image Placeholder (LQIP)
 	 * @param string|int|null $src Possible values - string 'xs': the source image at the smallest bootstrap container size, string 'pixel': a transparent pixel, int width: dynamically resized width in pixels (ie. 100px), string hex: a solid color (ie. '#FF0000'), string otherFileName: an alternate file
 	 * @param array $attr Attributes to attach to the LQIP element
-	 * @param bool $lqipSeparate This must be true if LQIP is an lazy-loaded <img> element. Positioning CSS is required to lay it on top of the <picture>
 	 */
-	public function lqip(?string $src = NULL, array $attr = [], bool $lqipSeparate = FALSE)
+	public function lqip(?string $src = NULL, array $attr = [])
 	{
 		$this->lqip = $src;
 		$this->lqipAttr = $attr;
-		$this->lqipSeparate = $lqipSeparate;
-		if ($this->lqipSeparate) {
-			$this->lazy(TRUE);
-		}
 		return $this;
 	}
 
@@ -461,10 +469,9 @@ class DynamicImage
 	 */
 	protected function renderPicture(): string
 	{
-		$this->pictureAttr ??= [];
-		// LQIP outside of <picture>.. we place it first, so it's behind the picture
-		$out = $this->renderLqipOwnImg();
+		$out = '';
 		// picture
+		$this->pictureAttr ??= [];
 		$out .= '<picture' . stringify_attributes($this->pictureAttr) . '>' . $this->nl();
 		foreach ($this->resolutionDict as $mediaWidth => $data) {
 			$sourceAttr = ["media" => '(min-width:' . $mediaWidth . 'px)'];
@@ -481,8 +488,7 @@ class DynamicImage
 			if ($this->publicFileExt === 'webp' || $this->publicFileExt === 'jp2') {
 				$sourceAttr['type'] = 'image/' . $this->publicFileExt;
 			}
-			$attrName = $this->lazy ? 'data-srcset' : 'srcset';
-			$sourceAttr[$attrName] = $this->nl() . implode(', ' . $this->nl(), array_values($sources));
+			$sourceAttr['srcset'] = $this->nl() . implode(', ' . $this->nl(), array_values($sources));
 			$out .= '<source' . stringify_attributes($sourceAttr) . '>' . $this->nl();
 		}
 		// write the <img>
@@ -500,32 +506,17 @@ class DynamicImage
 		$imgAttr = array_merge($this->getLqipAttr(FALSE), $this->imgAttr ?? []);
 		$imgAttr["alt"] = $this->alt ?? "";
 
-		// lazyload
-		if ($this->lazy) {
-			$imgAttr = $this->ensureAttr('class', 'lazyload', $imgAttr);
-			// is LQIP it's own image? then set the picture img to a transparent pixel
-			if ($this->lqipSeparate) {
-				$imgAttr['src'] = $this->pixel64();
-			} else {
-				// never lazy load inlined image data
-				$isInline = substr($imgAttr["src"], 0, 5) === "data:";
-				if (!$isInline) {
-					$imgAttr['data-src'] = $imgAttr['src'];
-					unset($imgAttr['src']);
-				}
-			}
+		// loading attribute
+		if (!empty($this->loading) && $this->loading !== 'auto') {
+			$imgAttr['loading'] = $this->loading;
 		}
+		// fetchpriority attribute
+		if (!empty($this->fetchPriority) && $this->fetchPriority !== 'auto') {
+			$imgAttr['fetchpriority'] = $this->fetchPriority;
+		}
+
 		$out .= '<img ' . stringify_attributes($imgAttr) . '>' . $this->nl();
 		return $out;
-	}
-
-	/**
-	 * Render the <img> for LQIP when it's a separate element from <picture>
-	 */
-	protected function renderLqipOwnImg(): string
-	{
-		if (!$this->lqip || !$this->lqipSeparate) return "";
-		return '<img ' . stringify_attributes($this->getLqipAttr(TRUE)) . '>' . $this->nl();
 	}
 
 	/**

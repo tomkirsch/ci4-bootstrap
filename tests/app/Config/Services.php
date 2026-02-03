@@ -21,20 +21,20 @@ use Tomkirsch\Bootstrap\Bootstrap;
  */
 class Services extends BaseService
 {
-	public static function bootstrap($getShared = true, $config = NULL): Bootstrap
-	{
-		$config = $config ?? new BootstrapConfig();
-		$config->prettyPrint = TRUE;
-		return $getShared ? static::getSharedInstance('bootstrap') : new Bootstrap($config);
-	}
+    public static function bootstrap($getShared = true, $config = NULL): Bootstrap
+    {
+        $config = $config ?? new BootstrapConfig();
+        $config->prettyPrint = TRUE;
+        return $getShared ? static::getSharedInstance('bootstrap') : new Bootstrap($config);
+    }
 
-	// public static function example($getShared = true)
-	// {
-	//     if ($getShared)
-	//     {
-	//         return static::getSharedInstance('example');
-	//     }
-	//
-	//     return new \CodeIgniter\Example();
-	// }
+    // public static function example($getShared = true)
+    // {
+    //     if ($getShared)
+    //     {
+    //         return static::getSharedInstance('example');
+    //     }
+    //
+    //     return new \CodeIgniter\Example();
+    // }
 }
