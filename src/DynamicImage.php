@@ -405,8 +405,16 @@ class DynamicImage
 			$this->setVal($option, $val);
 		}
 
-		// validate Image file, get orig dimensions if not set
-		$this->checkFile();
+		// validate Image file, get orig dimensions if not set. this will throw an exception if the file is missing
+		try {
+			$this->checkFile();
+		} catch (\Exception $e) {
+			log_message('error', "DynamicImage error: " . $e->getMessage());
+			$attr = array_merge($this->imgAttr, ['alt' => "Missing image"]);
+			return '<picture' . stringify_attributes($this->pictureAttr) . '>'
+				. '<img src="' . $this->pixel64() . '" ' . stringify_attributes($attr) . '>'
+				. '</picture>';
+		}
 
 		// validate grid
 		if (!$this->grid || $this->lastColClasses !== $this->colClasses) {
